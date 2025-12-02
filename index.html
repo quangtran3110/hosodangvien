@@ -1,34 +1,116 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Bổ Sung Hồ Sơ Đảng Viên</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f2f4f8; padding-bottom: 60px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .container { max-width: 750px; margin-top: 20px; }
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; overflow: hidden; }
-        .card-header { background-color: #ce2c3a; color: white; font-weight: bold; font-size: 1.1rem; padding: 12px 20px; }
-        .section-toggle { background-color: #e9ecef; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; }
-        .hidden-fields { display: none; padding: 15px; background-color: #fff; border: 1px solid #dee2e6; border-radius: 8px; margin-top: 5px; }
-        .form-label { font-weight: 600; font-size: 0.9rem; color: #555; }
-        .btn-submit { background-color: #ce2c3a; color: white; padding: 15px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; border: none; box-shadow: 0 4px 6px rgba(206, 44, 58, 0.3); }
-        .btn-submit:hover { background-color: #b0222e; }
-        .note-text { font-size: 0.85rem; color: #888; font-style: italic; margin-bottom: 10px; display: block; }
+        body {
+            background-color: #f2f4f8;
+            padding-bottom: 60px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            max-width: 750px;
+            margin-top: 20px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: #ce2c3a;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 12px 20px;
+        }
+
+        .section-toggle {
+            background-color: #e9ecef;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .hidden-fields {
+            display: none;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        
+        /* Style cho từng ô nhập trong gia đình */
+        .family-input-group {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        .family-input-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .family-label {
+            font-weight: 600;
+            color: #d63384; /* Màu hồng đậm để nổi bật quan hệ */
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .btn-submit {
+            background-color: #ce2c3a;
+            color: white;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(206, 44, 58, 0.3);
+        }
+
+        .btn-submit:hover {
+            background-color: #b0222e;
+        }
+
+        .note-text {
+            font-size: 0.85rem;
+            color: #888;
+            font-style: italic;
+            margin-bottom: 10px;
+            display: block;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h3 class="text-center text-danger fw-bold mb-4">PHIẾU BỔ SUNG HỒ SƠ ĐẢNG VIÊN</h3>
-        
+        <h3 class="text-center text-danger fw-bold mb-4">PHIẾU BỔ SUNG HỒ SƠ ĐẢNG VIÊN - KWACO</h3>
+
         <form id="dangVienForm">
-            
+
             <div class="card">
                 <div class="card-header">I. Thông tin chung</div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label">Chọn Chi bộ sinh hoạt</label>
+                        <label class="form-label">Chọn Chi bộ đang sinh hoạt</label>
                         <select class="form-select" id="chiBo" required>
                             <option value="" disabled selected>-- Chọn Chi bộ --</option>
                             <option value="Chi bộ Một">Chi bộ Một</option>
@@ -38,7 +120,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Họ và tên</label>
-                        <input type="text" class="form-control" id="hoTen" required style="text-transform: uppercase" placeholder="NGUYỄN VĂN A">
+                        <input type="text" class="form-control" id="hoTen" required style="text-transform: uppercase"
+                            placeholder="NGUYỄN VĂN A">
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
@@ -56,8 +139,9 @@
             <div class="card">
                 <div class="card-body">
                     <div class="form-check form-switch section-toggle">
-                        <input class="form-check-input" type="checkbox" id="checkNoiO" onchange="toggle('sec-noio', this)">
-                        <label class="form-check-label fw-bold" for="checkNoiO">Có thay đổi Nơi ở?</label>
+                        <input class="form-check-input" type="checkbox" id="checkNoiO"
+                            onchange="toggle('sec-noio', this)">
+                        <label class="form-check-label fw-bold" for="checkNoiO">Có thay đổi nơi ở mới?</label>
                     </div>
                     <div id="sec-noio" class="hidden-fields">
                         <label class="form-label">Nhập nơi ở mới:</label>
@@ -69,8 +153,10 @@
             <div class="card">
                 <div class="card-body">
                     <div class="form-check form-switch section-toggle">
-                        <input class="form-check-input" type="checkbox" id="checkCongTac" onchange="toggle('sec-congtac', this)">
-                        <label class="form-check-label fw-bold" for="checkCongTac">Có thay đổi Đơn vị công tác?</label>
+                        <input class="form-check-input" type="checkbox" id="checkCongTac"
+                            onchange="toggle('sec-congtac', this)">
+                        <label class="form-check-label fw-bold" for="checkCongTac">Có thay đổi Đơn vị công tác
+                            mới?</label>
                     </div>
                     <div id="sec-congtac" class="hidden-fields">
                         <label class="form-label">Nhập đơn vị công tác mới:</label>
@@ -82,15 +168,20 @@
             <div class="card">
                 <div class="card-body">
                     <div class="form-check form-switch section-toggle">
-                        <input class="form-check-input" type="checkbox" id="checkChucVu" onchange="toggle('sec-chucvu', this)">
+                        <input class="form-check-input" type="checkbox" id="checkChucVu"
+                            onchange="toggle('sec-chucvu', this)">
                         <label class="form-check-label fw-bold" for="checkChucVu">Có thay đổi Chức vụ?</label>
                     </div>
                     <div id="sec-chucvu" class="hidden-fields">
-                        <span class="note-text">* Ô nào không nhập hệ thống sẽ tự điền "K"</span>
-                        <div class="mb-2"><input type="text" class="form-control" id="cvDang" placeholder="Chức vụ Đảng"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="cvChinhQuyen" placeholder="Chức vụ Chính quyền"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="cvDoanThe" placeholder="Chức vụ Đoàn thể"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="cvDoanhNghiep" placeholder="Chức vụ Doanh nghiệp/Đơn vị SN"></div>
+                        <span class="note-text">* Nội dung nào không thay đổi thì để trống</span>
+                        <div class="mb-2"><input type="text" class="form-control" id="cvDang"
+                                placeholder="Chức vụ Đảng"></div>
+                        <div class="mb-2"><input type="text" class="form-control" id="cvChinhQuyen"
+                                placeholder="Chức vụ Chính quyền"></div>
+                        <div class="mb-2"><input type="text" class="form-control" id="cvDoanThe"
+                                placeholder="Chức vụ Đoàn thể"></div>
+                        <div class="mb-2"><input type="text" class="form-control" id="cvDoanhNghiep"
+                                placeholder="Chức vụ Doanh nghiệp"></div>
                     </div>
                 </div>
             </div>
@@ -98,18 +189,26 @@
             <div class="card">
                 <div class="card-body">
                     <div class="form-check form-switch section-toggle">
-                        <input class="form-check-input" type="checkbox" id="checkTrinhDo" onchange="toggle('sec-trinhdo', this)">
-                        <label class="form-check-label fw-bold" for="checkTrinhDo">Có thay đổi Chuyên môn, Chính trị, Ngoại ngữ?</label>
+                        <input class="form-check-input" type="checkbox" id="checkTrinhDo"
+                            onchange="toggle('sec-trinhdo', this)">
+                        <label class="form-check-label fw-bold" for="checkTrinhDo">Có thay đổi Chuyên môn, Chính trị,
+                            Ngoại ngữ?</label>
                     </div>
                     <div id="sec-trinhdo" class="hidden-fields">
-                        <span class="note-text">* Ô nào không nhập hệ thống sẽ tự điền "K"</span>
+                        <span class="note-text">* Nội dung nào không thay đổi thì để trống</span>
                         <div class="row g-2">
-                            <div class="col-md-6"><input type="text" class="form-control" id="gdPhoThong" placeholder="Giáo dục phổ thông (Lớp)"></div>
-                            <div class="col-md-6"><input type="text" class="form-control" id="chuyenMon" placeholder="Chuyên môn nghiệp vụ"></div>
-                            <div class="col-md-6"><input type="text" class="form-control" id="hocVi" placeholder="Học vị (Thạc sĩ, Tiến sĩ...)"></div>
-                            <div class="col-md-6"><input type="text" class="form-control" id="hocHam" placeholder="Học hàm (GS, PGS...)"></div>
-                            <div class="col-md-6"><input type="text" class="form-control" id="lyLuan" placeholder="Lý luận chính trị"></div>
-                            <div class="col-md-6"><input type="text" class="form-control" id="ngoaiNgu" placeholder="Ngoại ngữ (Anh B, C...)"></div>
+                            <div class="col-md-6"><input type="text" class="form-control" id="gdPhoThong"
+                                    placeholder="Giáo dục phổ thông (Lớp)"></div>
+                            <div class="col-md-6"><input type="text" class="form-control" id="chuyenMon"
+                                    placeholder="Chuyên môn nghiệp vụ"></div>
+                            <div class="col-md-6"><input type="text" class="form-control" id="hocVi"
+                                    placeholder="Học vị (Thạc sĩ, Tiến sĩ...)"></div>
+                            <div class="col-md-6"><input type="text" class="form-control" id="hocHam"
+                                    placeholder="Học hàm (GS, PGS...)"></div>
+                            <div class="col-md-6"><input type="text" class="form-control" id="lyLuan"
+                                    placeholder="Lý luận chính trị"></div>
+                            <div class="col-md-6"><input type="text" class="form-control" id="ngoaiNgu"
+                                    placeholder="Ngoại ngữ (Anh B, C...)"></div>
                         </div>
                     </div>
                 </div>
@@ -118,13 +217,16 @@
             <div class="card">
                 <div class="card-body">
                     <div class="form-check form-switch section-toggle">
-                        <input class="form-check-input" type="checkbox" id="checkKhenThuong" onchange="toggle('sec-khenthuong', this)">
-                        <label class="form-check-label fw-bold" for="checkKhenThuong">Có Khen thưởng hoặc Kỷ luật?</label>
+                        <input class="form-check-input" type="checkbox" id="checkKhenThuong"
+                            onchange="toggle('sec-khenthuong', this)">
+                        <label class="form-check-label fw-bold" for="checkKhenThuong">Có Khen thưởng hoặc Kỷ
+                            luật?</label>
                     </div>
                     <div id="sec-khenthuong" class="hidden-fields">
                         <div class="mb-3">
                             <label class="form-label">Khen thưởng:</label>
-                            <input type="text" class="form-control" id="khenThuong" placeholder="Nhập hình thức khen thưởng">
+                            <input type="text" class="form-control" id="khenThuong"
+                                placeholder="Nhập hình thức khen thưởng">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Kỷ luật:</label>
@@ -137,21 +239,46 @@
             <div class="card">
                 <div class="card-body">
                     <div class="form-check form-switch section-toggle">
-                        <input class="form-check-input" type="checkbox" id="checkFamily" onchange="toggle('sec-family', this)">
+                        <input class="form-check-input" type="checkbox" id="checkFamily"
+                            onchange="toggle('sec-family', this)">
                         <label class="form-check-label fw-bold" for="checkFamily">Có thay đổi về Gia đình?</label>
                     </div>
+
                     <div id="sec-family" class="hidden-fields">
-                        <table class="table table-bordered table-sm mb-2" id="familyTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="30%">Quan hệ</th>
-                                    <th>Thông tin thay đổi</th>
-                                    <th width="10%">Xóa</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addFamilyRow()">+ Thêm dòng</button>
+                        <span class="note-text mb-3 text-primary">
+                            * Nhập nội dung vào người thân có thay đổi. Ô nào không có thay đổi vui lòng <b>để trống</b> (Hệ thống sẽ tự hiểu là "K").
+                        </span>
+                        
+                        <div class="family-input-group">
+                            <label class="family-label">Cha đẻ</label>
+                            <textarea id="txtChaDe" class="form-control" rows="1" placeholder="Nhập nội dung thay đổi..."></textarea>
+                        </div>
+
+                        <div class="family-input-group">
+                            <label class="family-label">Mẹ đẻ</label>
+                            <textarea id="txtMeDe" class="form-control" rows="1" placeholder="Nhập nội dung thay đổi..."></textarea>
+                        </div>
+
+                        <div class="family-input-group">
+                            <label class="family-label">Cha (vợ hoặc chồng)</label>
+                            <textarea id="txtChaVoChong" class="form-control" rows="1" placeholder="Nhập nội dung thay đổi..."></textarea>
+                        </div>
+
+                        <div class="family-input-group">
+                            <label class="family-label">Mẹ (vợ hoặc chồng)</label>
+                            <textarea id="txtMeVoChong" class="form-control" rows="1" placeholder="Nhập nội dung thay đổi..."></textarea>
+                        </div>
+
+                        <div class="family-input-group">
+                            <label class="family-label">Vợ hoặc Chồng</label>
+                            <textarea id="txtVoChong" class="form-control" rows="2" placeholder="Ví dụ: Kết hôn, chức vụ mới..."></textarea>
+                        </div>
+
+                        <div class="family-input-group">
+                            <label class="family-label">Con cái</label>
+                            <textarea id="txtCon" class="form-control" rows="2" placeholder="Ví dụ: Sinh con mới tên là..."></textarea>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -159,17 +286,25 @@
             <div class="card">
                 <div class="card-body">
                     <div class="form-check form-switch section-toggle">
-                        <input class="form-check-input" type="checkbox" id="checkKinhTe" onchange="toggle('sec-kinhte', this)">
-                        <label class="form-check-label fw-bold" for="checkKinhTe">Có thay đổi Kinh tế, Tài sản?</label>
+                        <input class="form-check-input" type="checkbox" id="checkKinhTe"
+                            onchange="toggle('sec-kinhte', this)">
+                        <label class="form-check-label fw-bold" for="checkKinhTe">Có thay đổi kinh tế, đất đai, tài
+                            sản?</label>
                     </div>
                     <div id="sec-kinhte" class="hidden-fields">
-                        <span class="note-text">* Ô nào không nhập hệ thống sẽ tự điền "K"</span>
-                        <div class="mb-2"><input type="text" class="form-control" id="thuNhap" placeholder="Tổng thu nhập hộ gia đình"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="binhQuan" placeholder="Bình quân người/hộ"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="nhaO" placeholder="Nhà ở mới"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="datO" placeholder="Đất ở mới"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="hdKinhTe" placeholder="Hoạt động kinh tế"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="taiSan" placeholder="Tài sản mới > 50tr"></div>
+                        <span class="note-text">* Nội dung nào không thay đổi thì để trống</span>
+                        <div class="mb-2"><input type="text" class="form-control" id="thuNhap"
+                                placeholder="Tổng thu nhập hộ gia đình"></div>
+                        <div class="mb-2"><input type="text" class="form-control" id="binhQuan"
+                                placeholder="Bình quân người/hộ"></div>
+                        <div class="mb-2"><input type="text" class="form-control" id="nhaO" placeholder="Nhà ở mới">
+                        </div>
+                        <div class="mb-2"><input type="text" class="form-control" id="datO" placeholder="Đất ở mới">
+                        </div>
+                        <div class="mb-2"><input type="text" class="form-control" id="hdKinhTe"
+                                placeholder="Hoạt động kinh tế"></div>
+                        <div class="mb-2"><input type="text" class="form-control" id="taiSan"
+                                placeholder="Tài sản mới > 50tr"></div>
                     </div>
                 </div>
             </div>
@@ -183,46 +318,47 @@
 
     <script>
         // --- CẤU HÌNH LINK SCRIPT CỦA BẠN ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDzF7a0csELHqGC4aV4R1VcNrwEOvjSnuA5L4B46mEFL_EnYdUlQsH15Hp802HkFuoTQ/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDzF7a0csELHqGC4aV4R1VcNrwEOvjSnuA5L4B46mEFL_EnYdUlQsH15Hp802HkFuoTQ/exec";
 
         function toggle(id, cb) {
             document.getElementById(id).style.display = cb.checked ? 'block' : 'none';
         }
 
-        function addFamilyRow() {
-            const table = document.getElementById("familyTable").getElementsByTagName('tbody')[0];
-            const row = table.insertRow();
-            row.innerHTML = `
-                <td>
-                    <select class="form-select form-select-sm">
-                        <option>Cha đẻ</option><option>Mẹ đẻ</option>
-                        <option>Cha(Vợ/Chồng)</option><option>Mẹ(Vợ/Chồng)</option>
-                        <option>Vợ/Chồng</option><option>Con</option>
-                    </select>
-                </td>
-                <td><input type="text" class="form-control form-control-sm" placeholder="Họ tên, năm sinh, nội dung..."></td>
-                <td class="text-center"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">X</button></td>
-            `;
-        }
-
-        document.getElementById('dangVienForm').addEventListener('submit', function(e) {
+        document.getElementById('dangVienForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const btn = document.getElementById("btnSubmit");
             btn.innerHTML = "ĐANG GỬI DỮ LIỆU..."; btn.disabled = true;
 
-            // Thu thập dữ liệu Gia đình
+            // XỬ LÝ DỮ LIỆU GIA ĐÌNH
             let familyRows = [];
+            
+            // Danh sách các ID input và tên Quan hệ tương ứng
+            const familyInputs = [
+                {id: 'txtChaDe', name: 'Cha đẻ'},
+                {id: 'txtMeDe', name: 'Mẹ đẻ'},
+                {id: 'txtChaVoChong', name: 'Cha (vợ/chồng)'},
+                {id: 'txtMeVoChong', name: 'Mẹ (vợ/chồng)'},
+                {id: 'txtVoChong', name: 'Vợ/Chồng'},
+                {id: 'txtCon', name: 'Con'}
+            ];
+
+            // Nếu Checkbox Family được chọn -> Duyệt qua các ô input
             if (document.getElementById('checkFamily').checked) {
-                const rows = document.getElementById("familyTable").querySelectorAll('tbody tr');
-                rows.forEach(r => {
-                    familyRows.push({
-                        quanHe: r.cells[0].querySelector('select').value,
-                        noiDung: r.cells[1].querySelector('input').value
-                    });
+                familyInputs.forEach(item => {
+                    let val = document.getElementById(item.id).value.trim();
+                    if (val !== "") {
+                        // Chỉ thêm vào danh sách nếu CÓ nội dung
+                        familyRows.push({
+                            quanHe: item.name,
+                            noiDung: val
+                        });
+                    }
+                    // Nếu val === "" thì bỏ qua, hệ thống Backend sẽ tự hiểu là không có thay đổi cho người này
+                    // (Nếu cả danh sách familyRows rỗng thì Backend sẽ ghi "K" cho cả cột Gia đình)
                 });
             }
 
-            // Đóng gói dữ liệu gửi đi
+            // Đóng gói dữ liệu
             const data = {
                 chiBo: document.getElementById('chiBo').value,
                 hoTen: document.getElementById('hoTen').value,
@@ -274,7 +410,10 @@
                 alert("Đã gửi thành công! Cảm ơn đồng chí.");
                 document.getElementById('dangVienForm').reset();
                 btn.innerHTML = "GỬI BÁO CÁO"; btn.disabled = false;
+                
+                // Ẩn tất cả các mục đã sổ ra
                 document.querySelectorAll('.hidden-fields').forEach(e => e.style.display = 'none');
+                
                 window.scrollTo(0, 0);
             }).catch(err => {
                 alert("Lỗi kết nối: " + err);
@@ -283,5 +422,5 @@
         });
     </script>
 </body>
-</html>
 
+</html>
