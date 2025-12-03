@@ -50,21 +50,24 @@
             border-radius: 8px;
             margin-top: 5px;
         }
-        
+
         /* Style cho từng ô nhập trong gia đình */
         .family-input-group {
             margin-bottom: 15px;
             border-bottom: 1px solid #f0f0f0;
             padding-bottom: 15px;
         }
+
         .family-input-group:last-child {
             border-bottom: none;
             margin-bottom: 0;
             padding-bottom: 0;
         }
+
         .family-label {
             font-weight: 600;
-            color: #d63384; /* Màu hồng đậm để nổi bật quan hệ */
+            color: #d63384;
+            /* Màu hồng đậm để nổi bật quan hệ */
             margin-bottom: 5px;
             display: block;
         }
@@ -107,15 +110,15 @@
         <form id="dangVienForm">
 
             <div class="card">
-                <div class="card-header">I. Thông tin chung</div>
+                <div class="card-header">Thông tin chung</div>
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Chọn Chi bộ đang sinh hoạt</label>
                         <select class="form-select" id="chiBo" required>
                             <option value="" disabled selected>-- Chọn Chi bộ --</option>
-                            <option value="Chi bộ Một">Chi bộ Một</option>
-                            <option value="Chi bộ Hai">Chi bộ Hai</option>
-                            <option value="Chi bộ Ba">Chi bộ Ba</option>
+                            <option value="CHI BỘ MỘT">CHI BỘ MỘT</option>
+                            <option value="CHI BỘ HAI">CHI BỘ HAI</option>
+                            <option value="CHI BỘ BA">CHI BỘ BA</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -130,7 +133,8 @@
                         </div>
                         <div class="col-6 mb-3">
                             <label class="form-label">Số thẻ đảng viên</label>
-                            <input type="text" class="form-control" id="soThe" required>
+                            <input type="tel" class="form-control" id="soThe" required pattern="\d{12}" maxlength="12"
+                                title="Số thẻ phải là 12 chữ số.">
                         </div>
                     </div>
                 </div>
@@ -173,7 +177,7 @@
                         <label class="form-check-label fw-bold" for="checkChucVu">Có thay đổi Chức vụ?</label>
                     </div>
                     <div id="sec-chucvu" class="hidden-fields">
-                        <span class="note-text">* Nội dung nào không thay đổi thì để trống</span>
+                        <span class="note-text mb-3 text-primary">* Nội dung nào không thay đổi thì để trống</span>
                         <div class="mb-2"><input type="text" class="form-control" id="cvDang"
                                 placeholder="Chức vụ Đảng"></div>
                         <div class="mb-2"><input type="text" class="form-control" id="cvChinhQuyen"
@@ -195,7 +199,7 @@
                             Ngoại ngữ?</label>
                     </div>
                     <div id="sec-trinhdo" class="hidden-fields">
-                        <span class="note-text">* Nội dung nào không thay đổi thì để trống</span>
+                        <span class="note-text mb-3 text-primary">* Nội dung nào không thay đổi thì để trống</span>
                         <div class="row g-2">
                             <div class="col-md-6"><input type="text" class="form-control" id="gdPhoThong"
                                     placeholder="Giáo dục phổ thông (Lớp)"></div>
@@ -224,12 +228,12 @@
                     </div>
                     <div id="sec-khenthuong" class="hidden-fields">
                         <div class="mb-3">
-                            <label class="form-label">Khen thưởng:</label>
+                            <label class="family-label">Khen thưởng:</label>
                             <input type="text" class="form-control" id="khenThuong"
                                 placeholder="Nhập hình thức khen thưởng">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Kỷ luật:</label>
+                            <label class="family-label">Kỷ luật:</label>
                             <input type="text" class="form-control" id="kyLuat" placeholder="Nhập hình thức kỷ luật">
                         </div>
                     </div>
@@ -248,35 +252,41 @@
                         <span class="note-text mb-3 text-primary">
                             * Nếu không có thay đổi thì để trống.
                         </span>
-                        
+
                         <div class="family-input-group">
                             <label class="family-label">Cha đẻ</label>
-                            <textarea id="txtChaDe" class="form-control" rows="1" placeholder="Nhập nội dung thay đổi..."></textarea>
+                            <textarea id="txtChaDe" class="form-control" rows="1"
+                                placeholder="Nhập nội dung thay đổi..."></textarea>
                         </div>
 
                         <div class="family-input-group">
                             <label class="family-label">Mẹ đẻ</label>
-                            <textarea id="txtMeDe" class="form-control" rows="1" placeholder="Nhập nội dung thay đổi..."></textarea>
+                            <textarea id="txtMeDe" class="form-control" rows="1"
+                                placeholder="Nhập nội dung thay đổi..."></textarea>
                         </div>
 
                         <div class="family-input-group">
                             <label class="family-label">Cha (vợ hoặc chồng)</label>
-                            <textarea id="txtChaVoChong" class="form-control" rows="1" placeholder="Nhập nội dung thay đổi..."></textarea>
+                            <textarea id="txtChaVoChong" class="form-control" rows="1"
+                                placeholder="Nhập nội dung thay đổi..."></textarea>
                         </div>
 
                         <div class="family-input-group">
                             <label class="family-label">Mẹ (vợ hoặc chồng)</label>
-                            <textarea id="txtMeVoChong" class="form-control" rows="1" placeholder="Nhập nội dung thay đổi..."></textarea>
+                            <textarea id="txtMeVoChong" class="form-control" rows="1"
+                                placeholder="Nhập nội dung thay đổi..."></textarea>
                         </div>
 
                         <div class="family-input-group">
                             <label class="family-label">Vợ hoặc Chồng</label>
-                            <textarea id="txtVoChong" class="form-control" rows="2" placeholder="Ví dụ: Kết hôn, chức vụ mới..."></textarea>
+                            <textarea id="txtVoChong" class="form-control" rows="2"
+                                placeholder="Ví dụ: Tên, kết hôn, ly hôn, từ trần, chức vụ, công việc mới..."></textarea>
                         </div>
 
                         <div class="family-input-group">
                             <label class="family-label">Con cái</label>
-                            <textarea id="txtCon" class="form-control" rows="2" placeholder="Ví dụ: Sinh con mới tên là..."></textarea>
+                            <textarea id="txtCon" class="form-control" rows="2"
+                                placeholder="Ví dụ: họ tên, mới sinh, mới nhận con nuôi, làm gì, ở đâu...?."></textarea>
                         </div>
 
                     </div>
@@ -292,7 +302,7 @@
                             sản?</label>
                     </div>
                     <div id="sec-kinhte" class="hidden-fields">
-                        <span class="note-text">* Nội dung nào không thay đổi thì để trống</span>
+                        <span class="note-text mb-3 text-primary">* Nội dung nào không thay đổi thì để trống</span>
                         <div class="mb-2"><input type="text" class="form-control" id="thuNhap"
                                 placeholder="Tổng thu nhập hộ gia đình"></div>
                         <div class="mb-2"><input type="text" class="form-control" id="binhQuan"
@@ -329,17 +339,28 @@
             const btn = document.getElementById("btnSubmit");
             btn.innerHTML = "ĐANG GỬI DỮ LIỆU..."; btn.disabled = true;
 
+            // KIỂM TRA SỐ THẺ ĐẢNG VIÊN
+            const soTheInput = document.getElementById('soThe');
+            const soTheValue = soTheInput.value.trim();
+            if (!/^\d{12}$/.test(soTheValue)) {
+                alert("Lỗi: Số thẻ đảng viên phải là 12 chữ số. Vui lòng kiểm tra lại.");
+                btn.innerHTML = "GỬI BÁO CÁO";
+                btn.disabled = false;
+                soTheInput.focus(); // Focus vào ô nhập liệu để người dùng sửa
+                return; // Dừng việc gửi form
+            }
+
             // XỬ LÝ DỮ LIỆU GIA ĐÌNH
             let familyRows = [];
-            
+
             // Danh sách các ID input và tên Quan hệ tương ứng
             const familyInputs = [
-                {id: 'txtChaDe', name: 'Cha đẻ'},
-                {id: 'txtMeDe', name: 'Mẹ đẻ'},
-                {id: 'txtChaVoChong', name: 'Cha (vợ/chồng)'},
-                {id: 'txtMeVoChong', name: 'Mẹ (vợ/chồng)'},
-                {id: 'txtVoChong', name: 'Vợ/Chồng'},
-                {id: 'txtCon', name: 'Con'}
+                { id: 'txtChaDe', name: 'Cha đẻ' },
+                { id: 'txtMeDe', name: 'Mẹ đẻ' },
+                { id: 'txtChaVoChong', name: 'Cha (vợ/chồng)' },
+                { id: 'txtMeVoChong', name: 'Mẹ (vợ/chồng)' },
+                { id: 'txtVoChong', name: 'Vợ/Chồng' },
+                { id: 'txtCon', name: 'Con' }
             ];
 
             // Nếu Checkbox Family được chọn -> Duyệt qua các ô input
@@ -410,10 +431,10 @@
                 alert("Đã gửi thành công! Cảm ơn đồng chí.");
                 document.getElementById('dangVienForm').reset();
                 btn.innerHTML = "GỬI BÁO CÁO"; btn.disabled = false;
-                
+
                 // Ẩn tất cả các mục đã sổ ra
                 document.querySelectorAll('.hidden-fields').forEach(e => e.style.display = 'none');
-                
+
                 window.scrollTo(0, 0);
             }).catch(err => {
                 alert("Lỗi kết nối: " + err);
