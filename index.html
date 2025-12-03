@@ -303,18 +303,32 @@
                     </div>
                     <div id="sec-kinhte" class="hidden-fields">
                         <span class="note-text mb-3 text-primary">* Nội dung nào không thay đổi thì để trống</span>
-                        <div class="mb-2"><input type="text" class="form-control" id="thuNhap"
-                                placeholder="Tổng thu nhập hộ gia đình ...triệu đồng"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="binhQuan"
-                                placeholder="Bình quân người/hộ ...triệu/người/hộ"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="nhaO" placeholder="Nhà ở mới">
+                        <div class="mb-2">
+                            <label class="family-label">Tổng thu nhập hộ gia đình (triệu đồng/năm):</label>
+                            <input type="text" class="form-control" id="thuNhap" placeholder="Ví dụ: 120.000.000">
                         </div>
-                        <div class="mb-2"><input type="text" class="form-control" id="datO" placeholder="Đất ở mới">
+                        <div class="mb-2">
+                            <label class="family-label">Tổng số người trong hộ:</label>
+                            <input type="number" class="form-control" id="soNguoi"
+                                placeholder="Nhập số lượng người (VD: 4)">
                         </div>
-                        <div class="mb-2"><input type="text" class="form-control" id="hdKinhTe"
-                                placeholder="Hoạt động kinh tế"></div>
-                        <div class="mb-2"><input type="text" class="form-control" id="taiSan"
-                                placeholder="Tài sản mới > 50tr"></div>
+                        <div class="mb-2">
+                            <label class="family-label">Nhà ở mới:</label>
+                            <input type="text" class="form-control" id="nhaO" placeholder="Nhập thông tin nhà ở mới...">
+                        </div>
+                        <div class="mb-2">
+                            <label class="family-label">Đất ở mới:</label>
+                            <input type="text" class="form-control" id="datO" placeholder="Nhập thông tin đất ở mới...">
+                        </div>
+                        <div class="mb-2">
+                            <label class="family-label">Hoạt động kinh tế mới:</label>
+                            <input type="text" class="form-control" id="hdKinhTe"
+                                placeholder="Nhập hoạt động kinh tế mới...">
+                        </div>
+                        <div class="mb-2">
+                            <label class="family-label">Tài sản mới có giá trị > 50 triệu đồng:</label>
+                            <input type="text" class="form-control" id="taiSan" placeholder="Nhập tên và giá trị của tài sản mới...">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -415,7 +429,7 @@
 
                 checkKinhTe: document.getElementById('checkKinhTe').checked,
                 thuNhap: document.getElementById('thuNhap').value,
-                binhQuan: document.getElementById('binhQuan').value,
+                soNguoi: document.getElementById('soNguoi').value,
                 nhaO: document.getElementById('nhaO').value,
                 datO: document.getElementById('datO').value,
                 hdKinhTe: document.getElementById('hdKinhTe').value,
