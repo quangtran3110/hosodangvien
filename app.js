@@ -4,6 +4,10 @@
   const VERSION = '2026.1';
   const $ = id => document.getElementById(id);
   const normalize = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim().replace(/\s+/g, ' ');
+  function cleanAddress(text) {
+    const note='thay\\s+đổi\\s+địa\\s+chỉ\\s+mới\\s+do\\s+sáp\\s+nhập\\s+tỉnh';
+    return String(text||'').replace(new RegExp('[\\(\\[]\\s*'+note+'\\s*[.!]?\\s*[\\)\\]]','giu'),'').split(/\r?\n/).map(line=>line.replace(new RegExp('(?:[,;–—-]\\s*)?'+note+'\\s*[.!]?\\s*$','iu'),'').trim()).filter(Boolean).join('\n').trim();
+  }
   const familyFields = [['txtChaDe', 'Cha đẻ'], ['txtMeDe', 'Mẹ đẻ'], ['txtChaVoChong', 'Cha (vợ/chồng)'], ['txtMeVoChong', 'Mẹ (vợ/chồng)'], ['txtVoChong', 'Vợ/Chồng'], ['txtCon', 'Con']];
   const groups = [
     {check:'checkCongTac',title:'Đơn vị công tác',hint:'Thay đổi nghề nghiệp hoặc nơi công tác',fields:[['congTac','Nghề nghiệp, đơn vị công tác mới','textarea']]},
@@ -48,9 +52,48 @@
   }
   const form=$('dangVienForm'), nameInput=$('hoTen'), options=$('member-options'), review=$('review-dialog');
   let members=null, membersPromise=null, profileSequence=0, chosen=null, pending=null, saving=false, dirty=false, backendReady=false, activeOption=-1;
-  const profiles=new Map(), edits=new Set();
+  const profiles=new Map(), edits=new Set(), personalEdits=new Set();
   const value=id=>$(id).value.trim();
-  const setHint=(text,kind='')=>{$('member-hint').textContent=text;$('member-hint').className='field-hint '+kind;};
+  const personalFields=[['hoTen','họ và tên'],['ngaySinh','ngày sinh'],['soThe','số thẻ đảng viên'],['noiO','nơi ở']];
+  const pencil='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15l-1 6Z"/></svg>';
+  function setPersonalLock(id,locked,available=true) {
+    const input=$(id),button=$('edit-'+id);
+    input.readOnly=locked;input.classList.toggle('prefilled',locked);button.hidden=!available;
+    button.dataset.locked=String(locked);button.classList.toggle('save-personal',!locked&&available);
+    if(locked)button.innerHTML=pencil;else button.textContent='Lưu';
+    const label=personalFields.find(([key])=>key===id)[1];
+    button.setAttribute('aria-label',(locked?'Chỉnh sửa ':'Lưu ')+label);button.title=locked?'Chỉnh sửa':'Lưu';
+    button.setAttribute('aria-expanded',String(!locked));
+    if(id==='soThe')$('chuaCoThe').disabled=locked;
+  }
+  for(const [id,label] of personalFields){
+    const input=$(id),field=input.closest('.field'),heading=el('div','field-heading'),fieldLabel=field.querySelector('label');
+    field.insertBefore(heading,fieldLabel);heading.append(fieldLabel);
+    const button=el('button','edit-personal');button.id='edit-'+id;button.type='button';button.setAttribute('aria-controls',id);heading.append(button);
+    setPersonalLock(id,false,false);
+    button.addEventListener('click',()=>{
+      if(input.readOnly){
+        personalEdits.add(id);edits.add(id);if(id==='soThe')edits.add('chuaCoThe');
+        setPersonalLock(id,false);if(!input.disabled)input.focus();else $('chuaCoThe').focus();return;
+      }
+      if(id==='noiO')input.value=cleanAddress(input.value);
+      const error=personalError(id);
+      if(error){input.setAttribute('aria-invalid','true');status('form-status',error,true);if(!input.disabled)input.focus();return;}
+      personalEdits.delete(id);input.removeAttribute('aria-invalid');status('form-status','');
+      if(id==='hoTen'){
+        const changed=chosen&&normalize(input.value)!==normalize(chosen.hoTen);
+        if(changed){const match=members&&members.find(member=>normalize(member.hoTen)===normalize(input.value));if(match){chooseMember(match);return;}++profileSequence;clearProfile();}
+        input.value=input.value.trim().toLocaleUpperCase('vi-VN');hideOptions();
+      }
+      setPersonalLock(id,true);
+    });
+  }
+  function resetReasons(){
+    $('lyDoSapNhap').checked=false;$('lyDoKhac').checked=false;$('nguyenNhanKhac').value='';syncReasons();
+  }
+  function syncReasons(){const selected=$('lyDoKhac').checked;$('ly-do-khac-field').hidden=!selected;$('nguyenNhanKhac').disabled=!selected;$('nguyenNhanKhac').required=selected;$('lyDoKhac').setAttribute('aria-expanded',String(selected));updateSummary();}
+  function addressReasons(data){return [data.lyDoSapNhap?'Thay đổi do sáp nhập khu phố':'',data.lyDoKhac?data.nguyenNhanKhac:''].filter(Boolean).join('; ');}
+  const setHint=(text,kind='')=>{$('member-hint').textContent=text;$('member-hint').hidden=!text;$('member-hint').className='field-hint '+kind;};
   const status=(id,text,error=false)=>{const node=$(id);node.textContent=text;node.hidden=!text;node.className='notice'+(error?' error':'');};
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   function api(params,timeout=18000){
@@ -80,7 +123,7 @@
   }
   function hideOptions(){options.hidden=true;nameInput.setAttribute('aria-expanded','false');nameInput.removeAttribute('aria-activedescendant');activeOption=-1;}
   function showOptions(){
-    if(value('chiBo')!=='CHI BỘ MỘT'||!members)return hideOptions();
+    if(nameInput.readOnly||value('chiBo')!=='CHI BỘ MỘT'||!members)return hideOptions();
     const tokens=normalize(nameInput.value).split(' ').filter(Boolean);
     const filtered=members.filter(m=>tokens.every(t=>normalize(m.hoTen).includes(t)));
     options.replaceChildren();activeOption=-1;
@@ -88,23 +131,23 @@
       const li=el('li');li.setAttribute('role','presentation');
       const button=el('button','',member.hoTen);button.type='button';button.setAttribute('role','option');button.id='member-option-'+i;button.setAttribute('aria-selected','false');
       button.addEventListener('pointerdown',event=>event.preventDefault());
-      button.addEventListener('click',()=>chooseMember(member));li.append(button);options.append(li);
+      button.addEventListener('click',()=>{if(personalEdits.has('hoTen')){nameInput.value=member.hoTen;hideOptions();}else chooseMember(member);});li.append(button);options.append(li);
     }
     options.hidden=!filtered.length;nameInput.setAttribute('aria-expanded',String(Boolean(filtered.length)));
   }
   function syncCard(){const checked=$('chuaCoThe').checked;$('soThe').disabled=checked;$('soThe').required=!checked;$('card-required').hidden=checked;}
-  function clearProfile(){for(const id of ['ngaySinh','soThe','noiO'])$(id).value='';$('chuaCoThe').checked=false;syncCard();chosen=null;}
+  function clearProfile(){personalEdits.clear();for(const [id] of personalFields){if(id!=='hoTen')$(id).value='';setPersonalLock(id,false,false);}$('chuaCoThe').checked=false;syncCard();resetReasons();chosen=null;}
   async function chooseMember(member){
     const seq=++profileSequence;
-    clearProfile();nameInput.value=member.hoTen;chosen=member;edits.clear();hideOptions();setHint('Đang điền thông tin của '+member.hoTen+'…');
+    clearProfile();nameInput.value=member.hoTen;setPersonalLock('hoTen',true);chosen=member;edits.clear();hideOptions();setHint('Đang điền thông tin của '+member.hoTen+'…');
     try{
       const data=profiles.has(member.id)?profiles.get(member.id):await api({action:'profile',id:member.id});
       if(seq!==profileSequence||value('chiBo')!=='CHI BỘ MỘT')return;
       const profile=data.profile;if(!profile)throw new Error('Chưa có thông tin điền sẵn. Vui lòng nhập trực tiếp.');
       profiles.set(member.id,data);
-      for(const id of ['ngaySinh','soThe','noiO'])if(!edits.has(id))$(id).value=String(profile[id]||'');
-      if(!edits.has('soThe')&&!edits.has('chuaCoThe')){$('chuaCoThe').checked=!profile.soThe;syncCard();}
-      setHint(profile.noiO?'Đã điền sẵn. Đồng chí có thể sửa các thông tin bên dưới.':'Đã điền thông tin hiện có. Vui lòng bổ sung nơi ở hiện tại.','good');
+      for(const id of ['ngaySinh','soThe','noiO'])if(!edits.has(id)){const filled=id==='noiO'?cleanAddress(profile[id]):String(profile[id]||'');$(id).value=filled;setPersonalLock(id,Boolean(filled),Boolean(filled));}
+      if(!edits.has('soThe')&&!edits.has('chuaCoThe')){$('chuaCoThe').checked=!profile.soThe;syncCard();setPersonalLock('soThe',true);}
+      setHint(value('noiO')?'':'Vui lòng bổ sung nơi ở hiện tại.','good');
     }catch(error){if(seq===profileSequence)setHint(error.message,'error');}
   }
   $('chiBo').addEventListener('change',()=>{
@@ -114,15 +157,16 @@
   });
   for(const id of ['ngaySinh','soThe','noiO','chuaCoThe'])$(id).addEventListener('input',()=>edits.add(id));
   $('chuaCoThe').addEventListener('change',syncCard);
-  $('checkNoiO').addEventListener('change',updateSummary);
+  $('lyDoSapNhap').addEventListener('change',updateSummary);
+  $('lyDoKhac').addEventListener('change',syncReasons);
   nameInput.addEventListener('input',()=>{
-    if(chosen&&normalize(nameInput.value)!==normalize(chosen.hoTen)){++profileSequence;clearProfile();}
+    if(!personalEdits.has('hoTen')&&chosen&&normalize(nameInput.value)!==normalize(chosen.hoTen)){++profileSequence;clearProfile();}
     if(value('chiBo')==='CHI BỘ MỘT')loadMembers().then(()=>{if(document.activeElement===nameInput)showOptions();}).catch(()=>{});
   });
   nameInput.addEventListener('focus',()=>{if(value('chiBo')==='CHI BỘ MỘT')loadMembers().then(()=>{if(document.activeElement===nameInput)showOptions();}).catch(()=>{});});
   nameInput.addEventListener('blur',()=>{
     setTimeout(()=>{if(!options.contains(document.activeElement))hideOptions();},120);
-    if(!chosen&&value('chiBo')==='CHI BỘ MỘT'&&members){const match=members.find(m=>normalize(m.hoTen)===normalize(nameInput.value));if(match)chooseMember(match);}
+    if(!personalEdits.has('hoTen')&&!nameInput.readOnly&&!chosen&&value('chiBo')==='CHI BỘ MỘT'&&members){const match=members.find(m=>normalize(m.hoTen)===normalize(nameInput.value));if(match)chooseMember(match);}
   });
   nameInput.addEventListener('keydown',event=>{
     if(event.key==='Escape'){hideOptions();return;}
@@ -140,29 +184,38 @@
   function updateAverage(){const income=money(value('thuNhap')),people=Number(value('soNguoi'));const visible=Number.isSafeInteger(income)&&income>=0&&Number.isInteger(people)&&people>0;$('average-hint').hidden=!visible;if(visible)$('average-hint').textContent='Bình quân: '+Math.round(income/people).toLocaleString('vi-VN')+' đồng/người/năm.';}
   $('thuNhap').addEventListener('input',updateAverage);$('soNguoi').addEventListener('input',updateAverage);
   $('thuNhap').addEventListener('blur',()=>{const amount=money(value('thuNhap'));if(Number.isSafeInteger(amount)&&amount>=0)$('thuNhap').value=amount.toLocaleString('vi-VN');});
-  function updateSummary(){const count=groups.filter(g=>$(g.check).checked).length+Number($('checkNoiO').checked);$('change-summary').textContent=count?'Đã đánh dấu '+count+' mục có thay đổi.':'Chưa đánh dấu nội dung thay đổi.';}
+  function updateSummary(){const count=groups.filter(g=>$(g.check).checked).length+Number($('lyDoSapNhap').checked||$('lyDoKhac').checked);$('change-summary').textContent=count?'Đã đánh dấu '+count+' mục có thay đổi.':'Chưa đánh dấu nội dung thay đổi.';}
   function collect(){
-    const data={apiVersion:VERSION,year:2026,chiBo:value('chiBo'),hoTen:value('hoTen').toLocaleUpperCase('vi-VN'),ngaySinh:value('ngaySinh'),soThe:$('chuaCoThe').checked?'':value('soThe'),chuaCoThe:$('chuaCoThe').checked,noiO:value('noiO'),checkNoiO:$('checkNoiO').checked};
+    const data={apiVersion:VERSION,year:2026,chiBo:value('chiBo'),hoTen:value('hoTen').toLocaleUpperCase('vi-VN'),ngaySinh:value('ngaySinh'),soThe:$('chuaCoThe').checked?'':value('soThe'),chuaCoThe:$('chuaCoThe').checked,noiO:cleanAddress(value('noiO')),lyDoSapNhap:$('lyDoSapNhap').checked,lyDoKhac:$('lyDoKhac').checked,nguyenNhanKhac:$('lyDoKhac').checked?value('nguyenNhanKhac'):''};
+    const reason=addressReasons(data);if(reason)data.noiO+=' ('+reason+')';
     for(const group of groups){data[group.check]=$(group.check).checked;for(const [id] of group.fields)if(!id.startsWith('txt'))data[id]=value(id);}
     data.familyRows=data.checkFamily?familyFields.map(([id,quanHe])=>({quanHe,noiDung:value(id)})).filter(row=>row.noiDung):[];
     return data;
   }
+  function personalError(id){
+    if(id==='hoTen'&&!value(id))return 'Vui lòng nhập họ và tên.';
+    if(id==='ngaySinh'){
+      const match=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value(id)),date=match&&new Date(Number(match[3]),Number(match[2])-1,Number(match[1]));
+      if(!match||date.getFullYear()!==Number(match[3])||date.getMonth()+1!==Number(match[2])||date.getDate()!==Number(match[1])||Number(match[3])<1900||date>new Date())return 'Vui lòng nhập ngày sinh hợp lệ theo dd/mm/yyyy.';
+    }
+    if(id==='soThe'&&!$('chuaCoThe').checked&&!/^\d{12}$/.test(value(id)))return 'Số thẻ đảng viên phải gồm 12 chữ số, hoặc chọn chưa được cấp thẻ.';
+    if(id==='noiO'&&!cleanAddress(value(id)))return 'Vui lòng kiểm tra và bổ sung nơi ở hiện tại.';
+    return '';
+  }
   function validate(){
     form.querySelectorAll('[aria-invalid]').forEach(node=>node.removeAttribute('aria-invalid'));
+    if(personalEdits.size){const id=[...personalEdits][0],label=personalFields.find(([key])=>key===id)[1];status('form-status','Bấm Lưu ở ô '+label+' trước khi gửi hồ sơ.',true);$('edit-'+id).focus();return false;}
     const d=collect(),errors=[];
     if(!d.chiBo)errors.push(['chiBo','Vui lòng chọn chi bộ.']);
-    if(!d.hoTen)errors.push(['hoTen','Vui lòng nhập họ và tên.']);
-    const match=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d.ngaySinh);
-    const date=match&&new Date(Number(match[3]),Number(match[2])-1,Number(match[1]));
-    if(!match||date.getFullYear()!==Number(match[3])||date.getMonth()+1!==Number(match[2])||date.getDate()!==Number(match[1])||Number(match[3])<1900||date>new Date())errors.push(['ngaySinh','Vui lòng nhập ngày sinh hợp lệ theo dd/mm/yyyy.']);
-    if(!d.chuaCoThe&&!/^\d{12}$/.test(d.soThe))errors.push(['soThe','Số thẻ đảng viên phải gồm 12 chữ số, hoặc chọn chưa được cấp thẻ.']);
-    if(!d.noiO)errors.push(['noiO','Vui lòng kiểm tra và bổ sung nơi ở hiện tại.']);
+    for(const [id] of personalFields){const error=personalError(id);if(error)errors.push([id,error]);}
+    if(d.noiO.length>1500)errors.push(['noiO','Địa chỉ và nguyên nhân quá dài. Vui lòng rút gọn.']);
+    if(d.lyDoKhac&&!d.nguyenNhanKhac)errors.push(['nguyenNhanKhac','Vui lòng nhập nguyên nhân khác hoặc bỏ chọn ô “Khác”.']);
     if(d.checkKinhTe&&d.thuNhap){const amount=money(d.thuNhap);if(!Number.isSafeInteger(amount)||amount<0)errors.push(['thuNhap','Nhập tổng thu nhập bằng số tiền đồng, ví dụ 120.000.000.']);if(!/^\d+$/.test(d.soNguoi)||Number(d.soNguoi)<1||Number(d.soNguoi)>100)errors.push(['soNguoi','Vui lòng nhập số người trong hộ từ 1 đến 100.']);}
-    if(errors.length){for(const [id] of errors)$(id).setAttribute('aria-invalid','true');status('form-status',errors[0][1],true);$(errors[0][0]).focus();return false;}
+    if(errors.length){for(const [id] of errors)$(id).setAttribute('aria-invalid','true');status('form-status',errors[0][1],true);const id=errors[0][0];if(personalFields.some(([key])=>key===id)&&$(id).readOnly){personalEdits.add(id);setPersonalLock(id,false);}$(id).focus();return false;}
     status('form-status','');return true;
   }
   function fillReview(data){
-    const rows=[['Năm kê khai','2026'],['Chi bộ',data.chiBo],['Họ và tên',data.hoTen],['Ngày sinh',data.ngaySinh],['Số thẻ đảng viên',data.chuaCoThe?'Chưa được cấp thẻ':data.soThe],['Nơi ở',data.noiO],['Nơi ở thay đổi trong năm',data.checkNoiO?'Có':'Không']];
+    const rows=[['Năm kê khai','2026'],['Chi bộ',data.chiBo],['Họ và tên',data.hoTen],['Ngày sinh',data.ngaySinh],['Số thẻ đảng viên',data.chuaCoThe?'Chưa được cấp thẻ':data.soThe],['Nơi ở',data.noiO]];
     for(const group of groups){if(!data[group.check]){rows.push([group.title,'K — Không thay đổi']);continue;}for(const [id,label] of group.fields)rows.push([label,value(id)||'K']);}
     $('review-content').replaceChildren();for(const [title,text] of rows){const row=el('div');row.append(el('dt','',title),el('dd','',text));$('review-content').append(row);}
   }

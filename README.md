@@ -30,7 +30,8 @@ Trang công khai có chức năng tra cứu cá nhân qua Apps Script. Cần xá
 
 - Các cột A:AB giữ thứ tự của hệ thống cũ; AC lưu liên kết phiếu; AD lưu mã gửi để chống ghi lặp.
 - Ngày sinh và số thẻ lưu dạng văn bản để giữ đúng định dạng và số 0 đầu.
-- Nơi ở lấy từ ô đang hiển thị khi gửi, kể cả khi công tắc thay đổi nơi ở tắt.
+- Thông tin cá nhân điền sẵn được khóa. Bấm cây bút để sửa, rồi bấm `Lưu` ở từng ô trước khi gửi toàn bộ phiếu.
+- Nơi ở luôn được gửi; ghi chú cũ “thay đổi địa chỉ mới do sáp nhập tỉnh” được bỏ khỏi phần điền sẵn. Hai lựa chọn nguyên nhân được ghép trong ngoặc sau địa chỉ khi gửi để cùng được lưu ở cột H và xuất đúng nội dung bằng backend hiện tại.
 - Xuất phiếu đọc dòng đã lưu, không đọc lại dữ liệu điền sẵn để thay thế nội dung người dùng đã sửa.
 - Menu xuất sử dụng trang đang mở nếu đó là `2026`, `2025` hoặc `Sheet1`.
 - Kết quả gửi chỉ thành công khi có xác nhận từ server, hoặc tra cứu được mã gửi đã ghi nhận.

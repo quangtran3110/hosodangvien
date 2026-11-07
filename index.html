@@ -9,29 +9,29 @@
   <title>Phiếu bổ sung hồ sơ đảng viên 2026 · KWACO</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=20261107">
-  <script src="app.js?v=20261107" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20261107-3">
+  <script src="app.js?v=20261107-3" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#thong-tin">Đến biểu mẫu</a>
   <header class="site-header"><div class="header-inner"><a class="brand" href="./"><span class="brand-mark" aria-hidden="true">K</span><span>KWACO<small>HỒ SƠ ĐẢNG VIÊN</small></span></a><span class="year-tag">KÊ KHAI 2026</span></div></header>
   <main class="page">
-    <div class="intro"><p class="eyebrow">PHIẾU BỔ SUNG HỒ SƠ ĐẢNG VIÊN</p><h1>Thông tin đầy đủ.<br>Kê khai thuận tiện.</h1><p>Chọn chi bộ, kiểm tra thông tin cá nhân và bổ sung những nội dung có thay đổi trong năm 2026.</p></div>
+    <div class="intro"><h1>Phiếu bổ sung hồ sơ đảng viên</h1></div>
     <nav class="section-nav" aria-label="Các phần kê khai"><a href="#thong-tin"><span>1</span>Thông tin chung</a><a href="#bo-sung"><span>2</span>Nội dung bổ sung</a><a href="#gui-phieu"><span>3</span>Kiểm tra & gửi</a></nav>
     <noscript><p class="notice error">Cần bật JavaScript trong trình duyệt để sử dụng biểu mẫu.</p></noscript>
     <form id="dangVienForm" novalidate>
       <section class="card" id="thong-tin" aria-labelledby="info-title">
-        <div class="card-heading"><span class="section-number">01</span><div><h2 id="info-title">Thông tin đảng viên</h2><p>Các thông tin điền sẵn đều có thể chỉnh sửa.</p></div></div>
+        <div class="card-heading"><span class="section-number">01</span><div><h2 id="info-title">Thông tin đảng viên</h2></div></div>
         <div class="card-content form-grid">
           <div class="field full"><label for="chiBo">Chi bộ đang sinh hoạt <span class="required">*</span></label><select id="chiBo" required><option value="">Chọn chi bộ</option><option>CHI BỘ MỘT</option><option>CHI BỘ HAI</option><option>CHI BỘ BA</option></select></div>
           <div class="field full autocomplete"><label for="hoTen">Họ và tên <span class="required">*</span></label><input id="hoTen" type="text" required maxlength="120" autocomplete="off" spellcheck="false" autocapitalize="characters" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="member-options" aria-describedby="member-hint" placeholder="Nhập họ tên của đồng chí"><ul id="member-options" class="suggestions" role="listbox" aria-label="Thành viên Chi bộ Một" hidden></ul><p id="member-hint" class="field-hint" role="status" aria-live="polite">Chọn Chi bộ Một để sử dụng gợi ý thành viên.</p></div>
           <div class="field"><label for="ngaySinh">Ngày, tháng, năm sinh <span class="required">*</span></label><input id="ngaySinh" type="text" inputmode="numeric" autocomplete="bday" required maxlength="10" placeholder="dd/mm/yyyy" aria-describedby="birth-hint"><p class="field-hint" id="birth-hint">Ví dụ: 01/01/1990</p></div>
           <div class="field"><label for="soThe">Số thẻ đảng viên <span class="required" id="card-required">*</span></label><input id="soThe" type="text" inputmode="numeric" maxlength="12" pattern="[0-9]{12}" placeholder="12 chữ số" required autocomplete="off"><label class="small-check" for="chuaCoThe"><input id="chuaCoThe" type="checkbox">Chưa được cấp thẻ đảng viên</label></div>
-          <div class="field full"><label for="noiO">Nơi ở hiện tại <span class="required">*</span></label><textarea id="noiO" rows="2" maxlength="1500" required autocomplete="street-address" placeholder="Số nhà, đường/ấp/khu phố, xã/phường, tỉnh/thành phố"></textarea><p class="field-hint">Kiểm tra và sửa địa chỉ nếu cần. Nội dung tại đây sẽ được lưu và in trên phiếu.</p></div>
-          <label class="switch-row address-switch full" for="checkNoiO"><input id="checkNoiO" type="checkbox" role="switch"><span class="switch-track" aria-hidden="true"></span><span class="switch-copy"><strong>Nơi ở có thay đổi trong năm</strong><small>Đánh dấu nếu đồng chí đã thay đổi nơi ở.</small></span></label>
+          <div class="field full"><label for="noiO">Nơi ở hiện tại <span class="required">*</span></label><textarea id="noiO" rows="2" maxlength="1500" required autocomplete="street-address" placeholder="Số nhà, đường/ấp/khu phố, xã/phường, tỉnh/thành phố"></textarea></div>
+          <fieldset class="address-reasons full"><legend>Nguyên nhân thay đổi địa chỉ <span>(nếu có)</span></legend><div class="reason-options"><label class="reason-option" for="lyDoSapNhap"><input id="lyDoSapNhap" type="checkbox"><span>Thay đổi do sáp nhập khu phố</span></label><label class="reason-option" for="lyDoKhac"><input id="lyDoKhac" type="checkbox" aria-controls="ly-do-khac-field" aria-expanded="false"><span>Khác</span></label></div><div class="field other-reason" id="ly-do-khac-field" hidden><label for="nguyenNhanKhac">Nguyên nhân khác <span class="required">*</span></label><input id="nguyenNhanKhac" type="text" maxlength="500" disabled placeholder="Nhập nguyên nhân thay đổi địa chỉ"></div></fieldset>
         </div>
       </section>
-      <section id="bo-sung" aria-labelledby="changes-title"><div class="section-intro"><h2 id="changes-title">Nội dung bổ sung</h2><p>Bật mục có thay đổi để kê khai. Mục không thay đổi được ghi “K”.</p></div><div id="change-groups"></div></section>
+      <section id="bo-sung" aria-labelledby="changes-title"><div class="section-intro"><h2 id="changes-title">Nội dung bổ sung</h2></div><div id="change-groups"></div></section>
       <section class="card submit-card" id="gui-phieu" aria-labelledby="send-title"><div class="card-content"><h2 id="send-title">Kiểm tra trước khi gửi</h2><p>Thông tin đang hiển thị trên biểu mẫu sẽ được lưu cho năm 2026 và sử dụng khi xuất phiếu.</p><p id="change-summary" class="change-summary">Chưa đánh dấu nội dung thay đổi.</p><p id="form-status" class="notice" role="status" aria-live="polite" hidden></p><div class="submit-bar"><div><strong>Phiếu bổ sung năm 2026</strong><small>Kiểm tra lại trước khi gửi</small></div><button id="btnSubmit" class="button primary" type="submit">Xem lại & gửi <span aria-hidden="true">→</span></button></div></div></section>
     </form>
     <section id="success-panel" class="card success-panel" hidden tabindex="-1"><span class="success-icon" aria-hidden="true">✓</span><h2>Đã lưu phiếu năm 2026</h2><p id="success-message"></p><p>Thông tin đã được ghi nhận. Chi ủy có thể sử dụng dữ liệu này để xuất phiếu.</p><button type="button" id="new-form" class="button secondary">Kê khai phiếu khác</button></section>
