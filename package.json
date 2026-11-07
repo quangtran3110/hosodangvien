@@ -1,0 +1,1 @@
+{"name":"hosodangvien","version":"2026.1.0","private":true,"scripts":{"test":"node --test test/*.test.cjs","preview":"node tools/preview.cjs"},"devDependencies":{"jsdom":"^26.1.0"}}
