@@ -1,12 +1,13 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const vm=require('node:vm');
-function setup({lock=true,headersOnly=false}={}){
+function setup({lock=true,headersOnly=false,allowUpdates=false}={}){
   const copies=[],replacements={},cache=new Map(),props={HSDV_SPREADSHEET_ID:'main',HSDV_TEMPLATE_ID:'old',HSDV_FOLDER_ID:'folder',HSDV_TEMPLATE_2026_ID:'new',HSDV_MEMBERS_2026:JSON.stringify([{hoTen:'TÊN MỚI GIẢ LẬP',ngaySinh:'01/01/1990',soThe:'000000000001'},{hoTen:'THÀNH VIÊN CHƯA CÓ THẺ',ngaySinh:'10/11/1999',soThe:''},{hoTen:'CHI BỘ KHÁC',ngaySinh:'01/01/1991',soThe:'000000000002',chiBo:'CHI BỘ HAI'}])};
+  if(allowUpdates)props.HSDV_UPDATE_EXISTING_2026='true';
   class Sheet{
     constructor(name,rows=[]){this.name=name;this.rows=rows;this.cols=30;}
     getName(){return this.name;}getLastRow(){return this.rows.length;}getLastColumn(){return Math.max(1,...this.rows.map(row=>row.length));}getMaxColumns(){return this.cols;}insertColumnsAfter(n,c){this.cols+=c;}setFrozenRows(){}setColumnWidth(){}
     getRange(row,col,height=1,width=1){
       const sheet=this;if(typeof row==='string'){row=1;col=1;}
-      const range={setValues(values){values.forEach((r,i)=>{sheet.rows[row+i-1]||=[];r.forEach((v,j)=>sheet.rows[row+i-1][col+j-1]=v);});return range;},getValues(){return Array.from({length:height},(_,i)=>Array.from({length:width},(_,j)=>sheet.rows[row+i-1]?.[col+j-1]??''));},getDisplayValues(){return range.getValues().map(r=>r.map(v=>v===null?'':String(v)));},setValue(v){return range.setValues([[v]]);},setNumberFormat(){return range;},setFontWeight(){return range;},setBackground(){return range;},setWrap(){return range;},insertCheckboxes(){return range;},createTextFinder(text){const finder={matchEntireCell(){return finder;},useRegularExpression(){return finder;},findNext(){return range.getValues().some(r=>r[0]===text)?{}:null;}};return finder;}};return range;
+      const range={setValues(values){values.forEach((r,i)=>{sheet.rows[row+i-1]||=[];r.forEach((v,j)=>sheet.rows[row+i-1][col+j-1]=v);});return range;},getValues(){return Array.from({length:height},(_,i)=>Array.from({length:width},(_,j)=>sheet.rows[row+i-1]?.[col+j-1]??''));},getValue(){return range.getValues()[0][0];},getDisplayValues(){return range.getValues().map(r=>r.map(v=>v===null?'':String(v)));},setValue(v){return range.setValues([[v]]);},setNumberFormat(){return range;},setFontWeight(){return range;},setBackground(){return range;},setWrap(){return range;},insertCheckboxes(){return range;},createTextFinder(text){const finder={matchEntireCell(){return finder;},useRegularExpression(){return finder;},findNext(){return range.getValues().some(r=>r[0]===text)?{}:null;}};return finder;}};return range;
     }
   }
   const oldHeader=Array(30).fill('');oldHeader[3]='Họ và tên';oldHeader[6]='Số thẻ đảng';
@@ -16,6 +17,8 @@ function setup({lock=true,headersOnly=false}={}){
   const main={getSheetByName:name=>sheets[name]||null,insertSheet:name=>(sheets[name]=new Sheet(name)),getActiveSheet:()=>sheets['2026']||oldSheet};
   const propsApi={getProperty:key=>props[key]||null,setProperty(key,v){props[key]=v;return this;}};
   const context={console:{log(){}},PropertiesService:{getScriptProperties:()=>propsApi},CacheService:{getScriptCache:()=>({get:key=>cache.get(key),put:(key,v)=>cache.set(key,v),remove:key=>cache.delete(key)})},LockService:{getScriptLock:()=>({tryLock:()=>lock,waitLock(){if(!lock)throw Error('busy');},releaseLock(){}})},SpreadsheetApp:{openById:id=>id==='main'?main:{getSheets:()=>[roster]},getActiveSpreadsheet:()=>main,flush(){},getUi:()=>({alert(){}})},ContentService:{MimeType:{JSON:'json',JAVASCRIPT:'js'},createTextOutput:text=>({text,setMimeType(){return this;}})},DriveApp:{getFolderById:()=>({}),getFileById:id=>({makeCopy(name){copies.push({id,name});return {getId:()=>id+'-copy',getUrl:()=>'synthetic://doc'};}})},DocumentApp:{openById:()=>({getBody:()=>({replaceText(pattern,value){const token=pattern.replace(/\\/g,'');replacements[token]=value;}}),saveAndClose(){}})}};
+  context.Date=Date;
+  context.Utilities={formatDate(date,timeZone){return new Intl.DateTimeFormat('en-GB',{timeZone,day:'2-digit',month:'2-digit',year:'numeric'}).format(date);}};
   vm.createContext(context);new vm.Script(fs.readFileSync(path.resolve(__dirname,'../apps-script/Code.gs'),'utf8')).runInContext(context);
   const post=data=>JSON.parse(context.doPost({postData:{contents:JSON.stringify(data)}}).text),get=params=>JSON.parse(context.doGet({parameter:params}).text);
   return {context,post,get,sheets,oldSheet,copies,replacements};
@@ -32,3 +35,30 @@ test('Phiếu xuất lấy dữ liệu đã lưu, đúng năm 2026 và giữ K/0
 test('Không tạo phiếu từ hàng tiêu đề khi chưa có hồ sơ',()=>{const h=setup({headersOnly:true});h.context.createDocFromLastRow();assert.equal(h.copies.length,0);});
 test('Callback JSONP không hợp lệ không được chạy như JavaScript',()=>{const h=setup(),result=h.context.doGet({parameter:{action:'members',callback:'alert(1)'}}).text;assert.equal(JSON.parse(result).result,'error');assert.equal(result.startsWith('alert(1)'),false);});
 test('Địa chỉ kèm nguyên nhân trong ngoặc được lưu và xuất nguyên nội dung bằng API hiện có',()=>{const h=setup(),address='Địa chỉ mới (Thay đổi do sáp nhập khu phố; Cập nhật số nhà)';assert.equal(h.post({...valid(),noiO:address,lyDoSapNhap:true,lyDoKhac:true,nguyenNhanKhac:'Cập nhật số nhà'}).result,'success');const sheet=h.sheets['2026'];assert.equal(sheet.rows[1][7],address);h.context.processOneRow(sheet.rows[1],2,sheet);assert.equal(h.replacements['{{NOI_O}}'],address);});
+test('Điền số lý lịch từ hồ sơ 2025, giữ số 0 đầu và bỏ qua số do trình duyệt tự gửi',()=>{
+  const h=setup(),old=h.oldSheet.rows[1];old[5]='000123';old[4]='1/1/1990';
+  const data={...valid(),hoTen:'TÊN MỚI GIẢ LẬP',ngaySinh:'01/01/1990',soThe:'000000000001',soLyLich:'123456'};
+  assert.equal(h.post(data).result,'success');
+  assert.equal(h.sheets['2026'].rows[1][5],'000123');
+  const profile=h.get({action:'profile',id:'ten-moi-gia-lap'}).profile;
+  assert.deepEqual(Object.keys(profile).sort(),['ngaySinh','noiO','soThe']);
+});
+test('Ngày ký lấy từ thời điểm gửi theo giờ Việt Nam, kể cả khi qua ngày UTC',()=>{
+  const h=setup();h.post(valid());
+  const sheet=h.sheets['2026'];sheet.rows[1][1]=new Date('2026-11-09T18:30:00.000Z');
+  h.context.processOneRow(sheet.rows[1],2,sheet);
+  assert.ok(Object.values(h.replacements).includes('Kiến Tường, ngày 10 tháng 11 năm 2026'));
+});
+test('Cập nhật hàng cũ khi bật, giữ số lý lịch và chống gửi lại mã cũ',()=>{
+  const h=setup({allowUpdates:true});const first=valid();h.post(first);
+  const sheet=h.sheets['2026'];sheet.rows[1][0]=true;sheet.rows[1][5]='000123';sheet.rows[1][28]='synthetic://older';
+  const newer={...first,requestId:'synthetic-request-0002',noiO:'Địa chỉ cập nhật'};
+  assert.equal(h.post(newer).result,'success');assert.equal(sheet.rows.length,2);
+  assert.equal(sheet.rows[1][0],true);assert.equal(sheet.rows[1][5],'000123');assert.equal(sheet.rows[1][7],newer.noiO);assert.equal(sheet.rows[1][28],'');
+  assert.equal(h.get({action:'receipt',requestId:first.requestId}).saved,true);
+  assert.equal(h.post(first).duplicate,true);assert.equal(sheet.rows[1][7],newer.noiO);
+});
+test('Hai hồ sơ khác họ tên không ghi đè nhau dù khai trùng số thẻ',()=>{
+  const h=setup({allowUpdates:true});h.post(valid());h.post({...valid(),requestId:'synthetic-request-0002',hoTen:'NGƯỜI THỬ KHÁC'});
+  assert.equal(h.sheets['2026'].rows.length,3);
+});

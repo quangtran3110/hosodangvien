@@ -1,7 +1,11 @@
 // Backend Google Apps Script. Cấu hình ID trong Script Properties, không chứa hồ sơ cá nhân trong mã.
 const HSDV_VERSION = '2026.1';
 const HSDV_YEAR = 2026;
+const HSDV_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+const HSDV_TIMESTAMP_FORMAT = 'dd/MM/yyyy HH:mm:ss';
+const HSDV_SIGNING_DATE_PATTERN = 'Kiến Tường,\\s*ngày\\s*[.…0-9]*\\s*tháng\\s*[.…0-9]*\\s*năm\\s*[.…0-9]+';
 const HSDV_HEADERS = ['Chọn xuất file','Thời gian gửi','Chi bộ','Họ và tên','Ngày sinh','Số lý lịch','Số thẻ đảng','Nơi ở','Đơn vị công tác mới','CV Đảng','CV Chính quyền','CV Đoàn thể','CV Doanh nghiệp','GD Phổ thông','Chuyên môn','Học vị','Học hàm','Lý luận CT','Ngoại ngữ','Khen thưởng','Kỷ luật','Chi tiết Gia đình','Tổng thu nhập','Bình quân/người','Nhà ở mới','Đất ở mới','HĐ Kinh tế','Tài sản mới','LINK','Mã gửi'];
+const HSDV_PREVIOUS_RECEIPTS = 'Mã gửi trước đó';
 
 function hsdvConfig_() {
   const props = PropertiesService.getScriptProperties();
@@ -39,6 +43,27 @@ function hsdvOutput_(data,callback) {
 }
 function hsdvColumn_(sheet,col,last) {return last>1?sheet.getRange(2,col,last-1,1).getDisplayValues().map(row=>row[0]):[];}
 function hsdvLegacy_(ss) {return ss.getSheetByName('2025') || ss.getSheetByName('Sheet1');}
+function hsdvIdentity_(branch, name, birth, card) {
+  const parts = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(birth).trim());
+  const date = parts ? [Number(parts[1]), Number(parts[2]), Number(parts[3])].join('/') : '';
+  const branchKey = hsdvNormalize_(branch).replace(/^chi bo ([123])$/, (_, digit) => 'chi bo ' + ['mot', 'hai', 'ba'][digit - 1]);
+  const cardText = String(card).trim().replace(/^'/, '');
+  return {branch:branchKey, name:hsdvNormalize_(name), birth:date, card:/^\d{11,12}$/.test(cardText) ? cardText.padStart(12, '0') : ''};
+}
+function hsdvDossierSource_(ss) {
+  const sheet = hsdvLegacy_(ss);
+  if(!sheet || sheet.getLastRow() < 2) return [];
+  return sheet.getRange(2, 3, sheet.getLastRow() - 1, 5).getDisplayValues().flatMap(([branch,name,birth,number,card]) => {
+    const dossier = String(number).trim().replace(/^'/, '');
+    return /\d/.test(dossier) ? [{identity:hsdvIdentity_(branch,name,birth,card), dossier}] : [];
+  });
+}
+function hsdvDossierNumber_(source, identity) {
+  const byCard = source.filter(({identity:old}) => identity.card && old.card === identity.card && (old.name === identity.name || (identity.birth && old.birth === identity.birth)));
+  const matches = byCard.length ? byCard : source.filter(({identity:old}) => identity.name && identity.birth && old.branch === identity.branch && old.name === identity.name && old.birth === identity.birth);
+  const numbers = [...new Set(matches.map(row => row.dossier))];
+  return numbers.length === 1 ? numbers[0] : '';
+}
 function hsdvDirectory_() {
   const cache=CacheService.getScriptCache(),key='hsdv_directory_2026_v2',saved=cache.get(key);
   if(saved) return JSON.parse(saved);
@@ -68,16 +93,56 @@ function hsdvDirectory_() {
   cache.put(key,JSON.stringify(directory),300);
   return directory;
 }
-function hsdvReceipt_(requestId) {
+function hsdvReceipt_(requestId, sheet) {
   if(!/^[a-zA-Z0-9-]{12,80}$/.test(requestId||'')) throw new Error('Mã gửi chưa hợp lệ.');
-  const sheet=SpreadsheetApp.openById(hsdvConfig_().spreadsheetId).getSheetByName('2026');
-  return Boolean(sheet && sheet.getLastRow()>1 && sheet.getRange(2,30,sheet.getLastRow()-1,1).createTextFinder(requestId).matchEntireCell(true).useRegularExpression(false).findNext());
+  const target = sheet || SpreadsheetApp.openById(hsdvConfig_().spreadsheetId).getSheetByName('2026');
+  if(!target || target.getLastRow() < 2) return false;
+  const count = target.getLastRow() - 1;
+  if(target.getRange(2,30,count,1).createTextFinder(requestId).matchEntireCell(true).useRegularExpression(false).findNext()) return true;
+  if(target.getLastColumn() < 31 || target.getRange(1,31).getDisplayValues()[0][0] !== HSDV_PREVIOUS_RECEIPTS) return false;
+  return target.getRange(2,31,count,1).getDisplayValues().some(([history]) => history.split('\n').includes(requestId));
+}
+function hsdvExistingSubmission_(sheet, identity) {
+  const count = sheet.getLastRow() - 1;
+  if(count < 1) return null;
+  const rows = sheet.getRange(2,1,count,7).getDisplayValues();
+  const candidates = rows.map((data,i) => ({row:i+2, dossier:data[5], identity:hsdvIdentity_(data[2],data[3],data[4],data[6])}));
+  const byCard = candidates.filter(({identity:old}) => identity.card && old.card === identity.card);
+  const samePerson = old => old.branch === identity.branch && old.name === identity.name && old.birth === identity.birth;
+  // An entered card belonging to a different profile must never select that profile for an update.
+  if(byCard.some(({identity:old}) => !samePerson(old))) return null;
+  const matches = byCard.length ? byCard : candidates.filter(({identity:old}) => samePerson(old) && (!identity.card || !old.card));
+  if(!matches.length) return null;
+  if(matches.length > 1) {
+    const distinctCards = new Set(matches.map(({identity:old}) => old.card).filter(Boolean));
+    if(distinctCards.size > 1) return null;
+    const times = sheet.getRange(2,2,count,1).getValues();
+    const time = item => Number(times[item.row-2][0]) || 0;
+    matches.sort((a,b) => time(b)-time(a) || b.row-a.row);
+  }
+  return matches[0];
+}
+function hsdvUpdateSubmission_(sheet, existing, record) {
+  if(sheet.getMaxColumns() < 31) sheet.insertColumnsAfter(30,1);
+  const header = sheet.getRange(1,31);
+  const title = header.getDisplayValues()[0][0];
+  if(title !== HSDV_PREVIOUS_RECEIPTS) {
+    if(title || sheet.getLastColumn() > 30) throw new Error('Cột AE đang được sử dụng. Vui lòng báo người quản lý.');
+    header.setValue(HSDV_PREVIOUS_RECEIPTS);
+  }
+  const row = existing.row;
+  const [lastRequest, history] = sheet.getRange(row,30,1,2).getDisplayValues()[0];
+  const receipts = [history,lastRequest].filter(Boolean).join('\n');
+  record[5] = existing.dossier ? hsdvCell_(existing.dossier) : record[5];
+  // The export link in AC is cleared because the previously exported document represents the older submission.
+  sheet.getRange(row,5,1,3).setNumberFormat('@');
+  sheet.getRange(row,2,1,30).setValues([[...record.slice(1), receipts]]);
 }
 function doGet(e) {
   const p=(e&&e.parameter)||{};
   try{
     if(p.callback && !/^hsdv_[a-z0-9_]{8,100}$/.test(p.callback)) throw new Error('Yêu cầu chưa hợp lệ.');
-    if(!p.action || p.action==='health') return hsdvOutput_({result:'success',year:HSDV_YEAR},p.callback);
+    if(!p.action || p.action==='health') return hsdvOutput_({result:'success',year:HSDV_YEAR,submissionDate:true},p.callback);
     if(p.action==='members') return hsdvOutput_({result:'success',members:hsdvDirectory_().map(m=>({id:m.id,hoTen:m.hoTen}))},p.callback);
     if(p.action==='profile'){
       const member=hsdvDirectory_().find(m=>m.id===p.id);if(!member)throw new Error('Không tìm thấy thành viên. Đồng chí có thể nhập trực tiếp.');
@@ -94,7 +159,7 @@ function hsdvSheet2026_(ss) {
   if(sheet.getLastRow()===0){
     sheet.getRange(1,1,1,30).setValues([HSDV_HEADERS]);sheet.setFrozenRows(1);
     sheet.getRange(1,1,1,30).setFontWeight('bold').setBackground('#f5e8eb').setWrap(true);
-    sheet.getRange('E:G').setNumberFormat('@');sheet.getRange('W:X').setNumberFormat('#,##0');sheet.getRange('B:B').setNumberFormat('dd/MM/yyyy HH:mm:ss');
+    sheet.getRange('E:G').setNumberFormat('@');sheet.getRange('W:X').setNumberFormat('#,##0');sheet.getRange('B:B').setNumberFormat(HSDV_TIMESTAMP_FORMAT);
     sheet.setColumnWidth(1,70);sheet.setColumnWidth(4,220);sheet.setColumnWidth(8,330);sheet.setColumnWidth(29,280);sheet.setColumnWidth(30,270);
   }else{
     const headers=sheet.getRange(1,1,1,30).getDisplayValues()[0];
@@ -135,13 +200,71 @@ function doPost(e) {
     const record=hsdvRecord_(data);
     locked=lock.tryLock(10000);if(!locked)throw new Error('Hệ thống đang nhận phiếu khác. Đồng chí vui lòng thử lại sau ít giây.');
     const ss=SpreadsheetApp.openById(hsdvConfig_().spreadsheetId),sheet=hsdvSheet2026_(ss);
-    if(hsdvReceipt_(data.requestId))return hsdvOutput_({result:'success',year:HSDV_YEAR,requestId:data.requestId,duplicate:true});
+    if(hsdvReceipt_(data.requestId,sheet))return hsdvOutput_({result:'success',year:HSDV_YEAR,requestId:data.requestId,duplicate:true});
+    const identity = hsdvIdentity_(record[2],record[3],record[4],record[6]);
+    record[5] = hsdvCell_(hsdvDossierNumber_(hsdvDossierSource_(ss), identity));
+    const allowUpdates = PropertiesService.getScriptProperties().getProperty('HSDV_UPDATE_EXISTING_2026') === 'true';
+    const existing = allowUpdates ? hsdvExistingSubmission_(sheet,identity) : null;
+    if(existing) {
+      hsdvUpdateSubmission_(sheet,existing,record);
+      SpreadsheetApp.flush();
+      return hsdvOutput_({result:'success',year:HSDV_YEAR,requestId:data.requestId});
+    }
     const row=sheet.getLastRow()+1;
     sheet.getRange(row,5,1,3).setNumberFormat('@');sheet.getRange(row,1,1,30).setValues([record]);sheet.getRange(row,1).insertCheckboxes();
     SpreadsheetApp.flush();
     return hsdvOutput_({result:'success',year:HSDV_YEAR,requestId:data.requestId});
   }catch(error){return hsdvOutput_({result:'error',message:error.message});}
   finally{if(locked)lock.releaseLock();}
+}
+function repairHsdv2026() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const ss = SpreadsheetApp.openById(hsdvConfig_().spreadsheetId);
+    const sheet = hsdvSheet2026_(ss);
+    const count = sheet.getLastRow() - 1;
+    const timeZoneBefore = ss.getSpreadsheetTimeZone();
+    // Keep the original instants if a run is interrupted between the timezone change and the rewrite.
+    const checkpointKey = 'HSDV_TIMESTAMP_REPAIR_2026';
+    let timestamps = JSON.parse(props.getProperty(checkpointKey) || 'null');
+    if(timestamps === null && timeZoneBefore !== HSDV_TIME_ZONE) {
+      timestamps = [];
+      if(count > 0) {
+        const range = sheet.getRange(2, 2, count, 1);
+        const formulas = range.getFormulas();
+        range.getValues().forEach(([date],i) => {
+          if(date instanceof Date && !formulas[i][0]) timestamps.push([i + 2, date.getTime()]);
+        });
+      }
+      props.setProperty(checkpointKey, JSON.stringify(timestamps));
+    }
+    if(timeZoneBefore !== HSDV_TIME_ZONE) ss.setSpreadsheetTimeZone(HSDV_TIME_ZONE);
+    SpreadsheetApp.flush();
+    for(const [row, millis] of timestamps || []) sheet.getRange(row, 2).setValue(new Date(millis));
+    sheet.getRange('B:B').setNumberFormat(HSDV_TIMESTAMP_FORMAT);
+    SpreadsheetApp.flush();
+    for(const [row, millis] of timestamps || []) {
+      const date = sheet.getRange(row, 2).getValue();
+      if(!(date instanceof Date) || Math.abs(date.getTime() - millis) >= 1000) throw new Error('Chưa xác nhận được thời gian đã quy đổi ở dòng ' + row + '.');
+    }
+    if(timestamps !== null) props.deleteProperty(checkpointKey);
+    const source = hsdvDossierSource_(ss);
+    const rows = count > 0 ? sheet.getRange(2,3,count,5).getDisplayValues() : [];
+    let filled = 0, missing = 0;
+    rows.forEach(([branch,name,birth,number,card], i) => {
+      if(!name || String(number).trim()) return;
+      const match = hsdvDossierNumber_(source, hsdvIdentity_(branch,name,birth,card));
+      if(!match) { missing++; return; }
+      sheet.getRange(i + 2, 6).setNumberFormat('@').setValue(hsdvCell_(match));
+      filled++;
+    });
+    SpreadsheetApp.flush();
+    console.log(JSON.stringify({timeZoneBefore, timeZone:ss.getSpreadsheetTimeZone(), timestampsAdjusted:(timestamps || []).length, dossierNumbersFilled:filled, dossierNumbersMissing:missing}));
+  } finally {
+    lock.releaseLock();
+  }
 }
 function setup2026() {
   const lock=LockService.getScriptLock();lock.waitLock(10000);
@@ -173,10 +296,18 @@ function processOneRow(data,rowIndex,ws) {
   const config=hsdvConfig_(),year=ws.getName()==='2026'?2026:2025,template=year===2026?config.template2026Id:config.templateId;
   if(!template)throw new Error('Chưa khởi tạo mẫu phiếu năm 2026.');
   const file=DriveApp.getFileById(template).makeCopy('HSĐV_'+data[3]+'_'+year,DriveApp.getFolderById(config.folderId)),doc=DocumentApp.openById(file.getId()),body=doc.getBody();
+  if(year === HSDV_YEAR) hsdvFillSigningDate_(body, ws.getRange(rowIndex, 2).getValue(), data[1]);
   const money=value=>{if(value===null || value===undefined || String(value).trim()==='')return 'K';if(String(value).trim()==='K')return 'K';try{return hsdvMoney_(value).toLocaleString('vi-VN');}catch(error){return String(value);}};
   const map={NAM:year,CHI_BO:data[2],HO_TEN:data[3],NGAY_SINH:data[4],SO_LL:data[5]||'.......',SO_THE:data[6]||'Chưa được cấp thẻ',NOI_O:data[7],CONG_TAC:data[8],CV_DANG:data[9],CV_CHINH_QUYEN:data[10],CV_DOAN_THE:data[11],CV_DOANH_NGHIEP:data[12],GD_PT:data[13],CHUYEN_MON:data[14],HOC_VI:data[15],HOC_HAM:data[16],LY_LUAN:data[17],NGOAI_NGU:data[18],KHEN_THUONG:data[19],KY_LUAT:data[20],THU_NHAP:money(data[22]),BINH_QUAN:money(data[23]),NHA_O:data[24],DAT_O:data[25],HD_KINH_TE:data[26],TAI_SAN:data[27]};
   const family={'Cha đẻ':'CHA_DE','Mẹ đẻ':'ME_DE','Cha (vợ/chồng)':'CHA_VO_CHONG','Mẹ (vợ/chồng)':'ME_VO_CHONG','Vợ/Chồng':'VO_CHONG','Con':'CON_CAI'};Object.values(family).forEach(key=>map[key]='K');
   if(data[21] && data[21]!=='K'){let values;try{values=JSON.parse(String(data[21]));}catch(error){throw new Error('Nội dung gia đình ở dòng '+rowIndex+' chưa đúng định dạng.');}if(!Array.isArray(values))throw new Error('Nội dung gia đình chưa hợp lệ.');values.forEach(item=>{const key=family[item.quanHe];if(key&&item.noiDung)map[key]=map[key]==='K'?String(item.noiDung):map[key]+'; '+item.noiDung;});}
   Object.keys(map).forEach(key=>{const pattern='\\{\\{'+key+'\\}\\}';body.replaceText(pattern,map[key]===undefined||map[key]===null?'K':String(map[key]));});
   doc.saveAndClose();ws.getRange(rowIndex,29).setValue(file.getUrl());
+}
+function hsdvFillSigningDate_(body, timestamp, displayValue) {
+  const display = timestamp instanceof Date ? Utilities.formatDate(timestamp, HSDV_TIME_ZONE, 'dd/MM/yyyy') : String(displayValue || '').trim();
+  const date = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s|$)/.exec(display);
+  if(!date) return;
+  const signingDate = 'Kiến Tường, ngày ' + date[1].padStart(2, '0') + ' tháng ' + date[2].padStart(2, '0') + ' năm ' + date[3];
+  body.replaceText(HSDV_SIGNING_DATE_PATTERN, signingDate);
 }
