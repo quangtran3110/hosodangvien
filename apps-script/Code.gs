@@ -248,7 +248,10 @@ function processOneRow(data,rowIndex,ws) {
   const config=hsdvConfig_(),year=ws.getName()==='2026'?2026:2025,template=year===2026?config.template2026Id:config.templateId;
   if(!template)throw new Error('Chưa khởi tạo mẫu phiếu năm 2026.');
   const file=DriveApp.getFileById(template).makeCopy('HSĐV_'+data[3]+'_'+year,DriveApp.getFolderById(config.folderId)),doc=DocumentApp.openById(file.getId()),body=doc.getBody();
-  if(year === HSDV_YEAR) hsdvFillSigningDate_(body, ws.getRange(rowIndex, 2).getValue(), data[1]);
+  if(year === HSDV_YEAR) {
+    hsdvFillSigningDate_(body, ws.getRange(rowIndex, 2).getValue(), data[1]);
+    hsdvFillSigningName_(body, data[3]);
+  }
   const money=value=>{if(value===null || value===undefined || String(value).trim()==='')return 'K';if(String(value).trim()==='K')return 'K';try{return hsdvMoney_(value).toLocaleString('vi-VN');}catch(error){return String(value);}};
   const map={NAM:year,CHI_BO:data[2],HO_TEN:data[3],NGAY_SINH:data[4],SO_LL:data[5]||'.......',SO_THE:data[6]||'Chưa được cấp thẻ',NOI_O:data[7],CONG_TAC:data[8],CV_DANG:data[9],CV_CHINH_QUYEN:data[10],CV_DOAN_THE:data[11],CV_DOANH_NGHIEP:data[12],GD_PT:data[13],CHUYEN_MON:data[14],HOC_VI:data[15],HOC_HAM:data[16],LY_LUAN:data[17],NGOAI_NGU:data[18],KHEN_THUONG:data[19],KY_LUAT:data[20],THU_NHAP:money(data[22]),BINH_QUAN:money(data[23]),NHA_O:data[24],DAT_O:data[25],HD_KINH_TE:data[26],TAI_SAN:data[27]};
   const family={'Cha đẻ':'CHA_DE','Mẹ đẻ':'ME_DE','Cha (vợ/chồng)':'CHA_VO_CHONG','Mẹ (vợ/chồng)':'ME_VO_CHONG','Vợ/Chồng':'VO_CHONG','Con':'CON_CAI'};Object.values(family).forEach(key=>map[key]='K');
@@ -262,4 +265,18 @@ function hsdvFillSigningDate_(body, timestamp, displayValue) {
   if(!date) return;
   const signingDate = 'Kiến Tường, ngày ' + date[1].padStart(2, '0') + ' tháng ' + date[2].padStart(2, '0') + ' năm ' + date[3];
   body.replaceText(HSDV_SIGNING_DATE_PATTERN, signingDate);
+}
+function hsdvFillSigningName_(body, name) {
+  const marker = '{{HO_TEN}}';
+  const pattern = '\\{\\{HO_TEN\\}\\}';
+  const signingName = String(name).trim().normalize('NFC').toLocaleLowerCase('vi-VN')
+    .replace(/(^|[\s-])\p{L}/gu, letter => letter.toLocaleUpperCase('vi-VN'));
+  let match = null;
+  while((match = body.findText(pattern, match))) {
+    const paragraph = match.getElement().getParent();
+    // The signature marker occupies its own paragraph; the profile header uses the same marker inline.
+    if(paragraph.getText().trim() !== marker) continue;
+    paragraph.replaceText(pattern, signingName);
+    break;
+  }
 }

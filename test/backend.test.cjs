@@ -15,7 +15,7 @@ function setup({lock=true,headersOnly=false}={}){
   const roster=new Sheet('Danh sách',[['STT','Họ và tên','Ngày tháng năm sinh','Giới tính','Ngày vào Đảng','Ngày chính thức','Số thẻ đảng viên','Chi bộ sinh hoạt đảng'],['1','TÊN MỚI GIẢ LẬP','01/01/1990','','','','000000000001','Chi bộ Một'],['2','THÀNH VIÊN CHƯA CÓ THẺ','10/11/1999','','','','-','Chi bộ Một'],['3','CHI BỘ KHÁC','01/01/1991','','','','000000000002','Chi bộ Hai']]);
   const main={getSheetByName:name=>sheets[name]||null,insertSheet:name=>(sheets[name]=new Sheet(name)),getActiveSheet:()=>sheets['2026']||oldSheet};
   const propsApi={getProperty:key=>props[key]||null,setProperty(key,v){props[key]=v;return this;}};
-  const context={console:{log(){}},PropertiesService:{getScriptProperties:()=>propsApi},CacheService:{getScriptCache:()=>({get:key=>cache.get(key),put:(key,v)=>cache.set(key,v),remove:key=>cache.delete(key)})},LockService:{getScriptLock:()=>({tryLock:()=>lock,waitLock(){if(!lock)throw Error('busy');},releaseLock(){}})},SpreadsheetApp:{openById:id=>id==='main'?main:{getSheets:()=>[roster]},getActiveSpreadsheet:()=>main,flush(){},getUi:()=>({alert(){}})},ContentService:{MimeType:{JSON:'json',JAVASCRIPT:'js'},createTextOutput:text=>({text,setMimeType(){return this;}})},DriveApp:{getFolderById:()=>({}),getFileById:id=>({makeCopy(name){copies.push({id,name});return {getId:()=>id+'-copy',getUrl:()=>'synthetic://doc'};}})},DocumentApp:{openById:()=>({getBody:()=>({replaceText(pattern,value){const token=pattern.replace(/\\/g,'');replacements[token]=value;}}),saveAndClose(){}})}};
+  const context={console:{log(){}},PropertiesService:{getScriptProperties:()=>propsApi},CacheService:{getScriptCache:()=>({get:key=>cache.get(key),put:(key,v)=>cache.set(key,v),remove:key=>cache.delete(key)})},LockService:{getScriptLock:()=>({tryLock:()=>lock,waitLock(){if(!lock)throw Error('busy');},releaseLock(){}})},SpreadsheetApp:{openById:id=>id==='main'?main:{getSheets:()=>[roster]},getActiveSpreadsheet:()=>main,flush(){},getUi:()=>({alert(){}})},ContentService:{MimeType:{JSON:'json',JAVASCRIPT:'js'},createTextOutput:text=>({text,setMimeType(){return this;}})},DriveApp:{getFolderById:()=>({}),getFileById:id=>({makeCopy(name){copies.push({id,name});return {getId:()=>id+'-copy',getUrl:()=>'synthetic://doc'};}})},DocumentApp:{openById:()=>({getBody:()=>({findText:()=>null,replaceText(pattern,value){const token=pattern.replace(/\\/g,'');replacements[token]=value;}}),saveAndClose(){}})}};
   context.Date=Date;
   context.Utilities={formatDate(date,timeZone){return new Intl.DateTimeFormat('en-GB',{timeZone,day:'2-digit',month:'2-digit',year:'numeric'}).format(date);}};
   vm.createContext(context);new vm.Script(fs.readFileSync(path.resolve(__dirname,'../apps-script/Code.gs'),'utf8')).runInContext(context);
@@ -47,6 +47,16 @@ test('Ngày ký lấy từ thời điểm gửi theo giờ Việt Nam, kể cả
   const sheet=h.sheets['2026'];sheet.rows[1][1]=new Date('2026-11-09T18:30:00.000Z');
   h.context.processOneRow(sheet.rows[1],2,sheet);
   assert.ok(Object.values(h.replacements).includes('Kiến Tường, ngày 10 tháng 11 năm 2026'));
+});
+test('Chỉ đổi cách viết hoa ở dòng ký tên khi hai vị trí dùng cùng một dấu thay tên',()=>{
+  const h=setup();
+  const labels=['Họ và tên đang dùng: {{HO_TEN}}','{{HO_TEN}}'];
+  const matches=labels.map((_,i)=>({getElement:()=>({getParent:()=>({
+    getText:()=>labels[i],
+    replaceText:(pattern,value)=>{labels[i]=labels[i].replace(new RegExp(pattern),value);}
+  })})}));
+  h.context.hsdvFillSigningName_({findText:(pattern,previous)=>matches[matches.indexOf(previous)+1]||null},'NGUYỄN VĂN A');
+  assert.deepEqual(labels,['Họ và tên đang dùng: {{HO_TEN}}','Nguyễn Văn A']);
 });
 test('Mỗi lượt kê khai mới của cùng một đảng viên được lưu ở một hàng riêng',()=>{
   const h=setup(),first=valid();
