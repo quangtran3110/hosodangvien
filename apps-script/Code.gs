@@ -5,7 +5,6 @@ const HSDV_TIME_ZONE = 'Asia/Ho_Chi_Minh';
 const HSDV_TIMESTAMP_FORMAT = 'dd/MM/yyyy HH:mm:ss';
 const HSDV_SIGNING_DATE_PATTERN = 'Kiến Tường,\\s*ngày\\s*[.…0-9]*\\s*tháng\\s*[.…0-9]*\\s*năm\\s*[.…0-9]+';
 const HSDV_HEADERS = ['Chọn xuất file','Thời gian gửi','Chi bộ','Họ và tên','Ngày sinh','Số lý lịch','Số thẻ đảng','Nơi ở','Đơn vị công tác mới','CV Đảng','CV Chính quyền','CV Đoàn thể','CV Doanh nghiệp','GD Phổ thông','Chuyên môn','Học vị','Học hàm','Lý luận CT','Ngoại ngữ','Khen thưởng','Kỷ luật','Chi tiết Gia đình','Tổng thu nhập','Bình quân/người','Nhà ở mới','Đất ở mới','HĐ Kinh tế','Tài sản mới','LINK','Mã gửi'];
-const HSDV_PREVIOUS_RECEIPTS = 'Mã gửi trước đó';
 
 function hsdvConfig_() {
   const props = PropertiesService.getScriptProperties();
@@ -96,47 +95,7 @@ function hsdvDirectory_() {
 function hsdvReceipt_(requestId, sheet) {
   if(!/^[a-zA-Z0-9-]{12,80}$/.test(requestId||'')) throw new Error('Mã gửi chưa hợp lệ.');
   const target = sheet || SpreadsheetApp.openById(hsdvConfig_().spreadsheetId).getSheetByName('2026');
-  if(!target || target.getLastRow() < 2) return false;
-  const count = target.getLastRow() - 1;
-  if(target.getRange(2,30,count,1).createTextFinder(requestId).matchEntireCell(true).useRegularExpression(false).findNext()) return true;
-  if(target.getLastColumn() < 31 || target.getRange(1,31).getDisplayValues()[0][0] !== HSDV_PREVIOUS_RECEIPTS) return false;
-  return target.getRange(2,31,count,1).getDisplayValues().some(([history]) => history.split('\n').includes(requestId));
-}
-function hsdvExistingSubmission_(sheet, identity) {
-  const count = sheet.getLastRow() - 1;
-  if(count < 1) return null;
-  const rows = sheet.getRange(2,1,count,7).getDisplayValues();
-  const candidates = rows.map((data,i) => ({row:i+2, dossier:data[5], identity:hsdvIdentity_(data[2],data[3],data[4],data[6])}));
-  const byCard = candidates.filter(({identity:old}) => identity.card && old.card === identity.card);
-  const samePerson = old => old.branch === identity.branch && old.name === identity.name && old.birth === identity.birth;
-  // An entered card belonging to a different profile must never select that profile for an update.
-  if(byCard.some(({identity:old}) => !samePerson(old))) return null;
-  const matches = byCard.length ? byCard : candidates.filter(({identity:old}) => samePerson(old) && (!identity.card || !old.card));
-  if(!matches.length) return null;
-  if(matches.length > 1) {
-    const distinctCards = new Set(matches.map(({identity:old}) => old.card).filter(Boolean));
-    if(distinctCards.size > 1) return null;
-    const times = sheet.getRange(2,2,count,1).getValues();
-    const time = item => Number(times[item.row-2][0]) || 0;
-    matches.sort((a,b) => time(b)-time(a) || b.row-a.row);
-  }
-  return matches[0];
-}
-function hsdvUpdateSubmission_(sheet, existing, record) {
-  if(sheet.getMaxColumns() < 31) sheet.insertColumnsAfter(30,1);
-  const header = sheet.getRange(1,31);
-  const title = header.getDisplayValues()[0][0];
-  if(title !== HSDV_PREVIOUS_RECEIPTS) {
-    if(title || sheet.getLastColumn() > 30) throw new Error('Cột AE đang được sử dụng. Vui lòng báo người quản lý.');
-    header.setValue(HSDV_PREVIOUS_RECEIPTS);
-  }
-  const row = existing.row;
-  const [lastRequest, history] = sheet.getRange(row,30,1,2).getDisplayValues()[0];
-  const receipts = [history,lastRequest].filter(Boolean).join('\n');
-  record[5] = existing.dossier ? hsdvCell_(existing.dossier) : record[5];
-  // The export link in AC is cleared because the previously exported document represents the older submission.
-  sheet.getRange(row,5,1,3).setNumberFormat('@');
-  sheet.getRange(row,2,1,30).setValues([[...record.slice(1), receipts]]);
+  return Boolean(target && target.getLastRow() > 1 && target.getRange(2,30,target.getLastRow()-1,1).createTextFinder(requestId).matchEntireCell(true).useRegularExpression(false).findNext());
 }
 function doGet(e) {
   const p=(e&&e.parameter)||{};
@@ -203,13 +162,6 @@ function doPost(e) {
     if(hsdvReceipt_(data.requestId,sheet))return hsdvOutput_({result:'success',year:HSDV_YEAR,requestId:data.requestId,duplicate:true});
     const identity = hsdvIdentity_(record[2],record[3],record[4],record[6]);
     record[5] = hsdvCell_(hsdvDossierNumber_(hsdvDossierSource_(ss), identity));
-    const allowUpdates = PropertiesService.getScriptProperties().getProperty('HSDV_UPDATE_EXISTING_2026') === 'true';
-    const existing = allowUpdates ? hsdvExistingSubmission_(sheet,identity) : null;
-    if(existing) {
-      hsdvUpdateSubmission_(sheet,existing,record);
-      SpreadsheetApp.flush();
-      return hsdvOutput_({result:'success',year:HSDV_YEAR,requestId:data.requestId});
-    }
     const row=sheet.getLastRow()+1;
     sheet.getRange(row,5,1,3).setNumberFormat('@');sheet.getRange(row,1,1,30).setValues([record]);sheet.getRange(row,1).insertCheckboxes();
     SpreadsheetApp.flush();

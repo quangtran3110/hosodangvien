@@ -1,7 +1,6 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const vm=require('node:vm');
-function setup({lock=true,headersOnly=false,allowUpdates=false}={}){
+function setup({lock=true,headersOnly=false}={}){
   const copies=[],replacements={},cache=new Map(),props={HSDV_SPREADSHEET_ID:'main',HSDV_TEMPLATE_ID:'old',HSDV_FOLDER_ID:'folder',HSDV_TEMPLATE_2026_ID:'new',HSDV_MEMBERS_2026:JSON.stringify([{hoTen:'TÊN MỚI GIẢ LẬP',ngaySinh:'01/01/1990',soThe:'000000000001'},{hoTen:'THÀNH VIÊN CHƯA CÓ THẺ',ngaySinh:'10/11/1999',soThe:''},{hoTen:'CHI BỘ KHÁC',ngaySinh:'01/01/1991',soThe:'000000000002',chiBo:'CHI BỘ HAI'}])};
-  if(allowUpdates)props.HSDV_UPDATE_EXISTING_2026='true';
   class Sheet{
     constructor(name,rows=[]){this.name=name;this.rows=rows;this.cols=30;}
     getName(){return this.name;}getLastRow(){return this.rows.length;}getLastColumn(){return Math.max(1,...this.rows.map(row=>row.length));}getMaxColumns(){return this.cols;}insertColumnsAfter(n,c){this.cols+=c;}setFrozenRows(){}setColumnWidth(){}
@@ -49,16 +48,12 @@ test('Ngày ký lấy từ thời điểm gửi theo giờ Việt Nam, kể cả
   h.context.processOneRow(sheet.rows[1],2,sheet);
   assert.ok(Object.values(h.replacements).includes('Kiến Tường, ngày 10 tháng 11 năm 2026'));
 });
-test('Cập nhật hàng cũ khi bật, giữ số lý lịch và chống gửi lại mã cũ',()=>{
-  const h=setup({allowUpdates:true});const first=valid();h.post(first);
-  const sheet=h.sheets['2026'];sheet.rows[1][0]=true;sheet.rows[1][5]='000123';sheet.rows[1][28]='synthetic://older';
-  const newer={...first,requestId:'synthetic-request-0002',noiO:'Địa chỉ cập nhật'};
-  assert.equal(h.post(newer).result,'success');assert.equal(sheet.rows.length,2);
-  assert.equal(sheet.rows[1][0],true);assert.equal(sheet.rows[1][5],'000123');assert.equal(sheet.rows[1][7],newer.noiO);assert.equal(sheet.rows[1][28],'');
-  assert.equal(h.get({action:'receipt',requestId:first.requestId}).saved,true);
-  assert.equal(h.post(first).duplicate,true);assert.equal(sheet.rows[1][7],newer.noiO);
-});
-test('Hai hồ sơ khác họ tên không ghi đè nhau dù khai trùng số thẻ',()=>{
-  const h=setup({allowUpdates:true});h.post(valid());h.post({...valid(),requestId:'synthetic-request-0002',hoTen:'NGƯỜI THỬ KHÁC'});
-  assert.equal(h.sheets['2026'].rows.length,3);
+test('Mỗi lượt kê khai mới của cùng một đảng viên được lưu ở một hàng riêng',()=>{
+  const h=setup(),first=valid();
+  assert.equal(h.post(first).result,'success');
+  assert.equal(h.post({...first,requestId:'synthetic-request-0002',noiO:'Địa chỉ mới'}).result,'success');
+  const sheet=h.sheets['2026'];
+  assert.equal(sheet.rows.length,3);
+  assert.equal(sheet.rows[1][7],first.noiO);
+  assert.equal(sheet.rows[2][7],'Địa chỉ mới');
 });
